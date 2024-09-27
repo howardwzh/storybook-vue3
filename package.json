@@ -11,9 +11,11 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "chart.js": "^4.4.4",
     "quill": "^2.0.2",
     "vee-validate": "^4.13.2",
     "vue": "^3.4.37",
+    "vue-chartjs": "^5.3.1",
     "yup": "^1.4.0"
   },
   "devDependencies": {
