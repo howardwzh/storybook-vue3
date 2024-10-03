@@ -1,6 +1,6 @@
-/** @type { import('@storybook/vue3-vite').StorybookConfig } */
+/** @type { import('@storybook/vue3-webpack5').StorybookConfig } */
 const config = {
-  stories: ["../src/**/*.mdx", "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
+  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|ts|tsx)'],
   addons: [
     "@storybook/addon-onboarding",
     "@storybook/addon-links",
@@ -9,8 +9,11 @@ const config = {
     "@storybook/addon-interactions",
   ],
   framework: {
-    name: "@storybook/vue3-vite",
+    name: "@storybook/vue3-webpack5",
     options: {},
+  },
+  core: {
+    builder: '@storybook/builder-webpack5',
   },
 };
 export default config;
