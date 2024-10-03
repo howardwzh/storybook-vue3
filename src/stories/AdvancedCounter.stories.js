@@ -1,4 +1,3 @@
-import '../style.css';
 import AdvancedCounter from '../components/AdvancedCounter.vue';
 
 export default {

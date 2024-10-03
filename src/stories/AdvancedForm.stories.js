@@ -1,4 +1,3 @@
-import '../style.css';
 import AdvancedForm from '../components/AdvancedForm.vue';
 
 export default {

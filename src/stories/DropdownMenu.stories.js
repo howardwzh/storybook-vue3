@@ -1,4 +1,3 @@
-import '../style.css';
 import DropdownMenu from '../components/DropdownMenu.vue';
 
 export default {

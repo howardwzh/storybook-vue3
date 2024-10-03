@@ -1,4 +1,3 @@
-import '../style.css';
 import ModalDialog from '../components/ModalDialog.vue';
 import { ref } from 'vue';
 

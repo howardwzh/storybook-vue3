@@ -1,4 +1,3 @@
-import '../style.css';
 import AdvancedDataTable from '../components/AdvancedDataTable.vue';
 import Switch from '../components/Switch.vue';
 import { h } from 'vue';
