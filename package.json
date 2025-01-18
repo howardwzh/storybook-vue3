@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build -o storybook-vue3"
+    "build-storybook": "storybook build",
+    "deploy": "sh ./deploy.sh"
   },
   "dependencies": {
     "chart.js": "^4.4.4",
