@@ -17,14 +17,15 @@
       <el-table-column
         v-else-if="column.type === 'index'"
         type="index"
+        :index="indexOffset || 0"
         :label="column.label"
         :width="column.width"
         :fixed="column.fixed"
       />
 
-      <!-- Actions Column -->
+      <!-- Buttons Column -->
       <el-table-column
-        v-else-if="column.type === 'actions'"
+        v-else-if="column.buttons"
         :label="column.label"
         :width="column.width"
         :fixed="column.fixed"
@@ -103,7 +104,6 @@
         :sortable="column.sortable"
         :filters="column.filters"
         :filter-method="column.filterMethod"
-        :colspan="handleColspan"
         :fixed="column.fixed"
         v-show="!column.hidden"
       >
@@ -114,38 +114,46 @@
               @change="(val) => column.switch?.change(val, row)"
             />
           </template>
-          <div class="edit-wrapper" v-else-if="column.edit">
+          <div class="input-wrapper" v-else-if="column.input">
             <el-input
-              type="text"
               v-model="row[column.key]"
-              :readonly="!row[`${column.key}Old`]"
+              :type="column.input?.type || 'text'"
+              :placeholder="column.input?.placeholder || '请输入'"
+              :maxlength="column.input?.maxlength"
+              :show-word-limit="!!column.input?.maxlength"
+              :disabled="column.input?.disabled?.(row)"
               @focus="
                 column.key &&
-                  !row[`${column.key}Old`] &&
-                  (row[`${column.key}Old`] = row[column.key])
+                  !row[`${column.key}-old`] &&
+                  (row[`${column.key}-old`] = row[column.key])
               "
               @blur="
                 column.key &&
-                  row[`${column.key}Old`].toString() === row[column.key] &&
-                  (row[`${column.key}Old`] = undefined)
+                  row[`${column.key}-old`].toString() === row[column.key] &&
+                  (row[`${column.key}-old`] = undefined)
               "
             />
             <template
               v-if="
-                row[`${column.key}Old`] !== undefined &&
-                row[`${column.key}Old`] !== row[column.key]
+                row[`${column.key}-old`] !== undefined &&
+                row[`${column.key}-old`] !== row[column.key]
               "
             >
               <el-button
                 type="primary"
                 size="small"
-                @click="column.edit?.change(row[column.key], row)"
+                @click="
+                  column.input?.change(
+                    row[column.key],
+                    row[`${column.key}-old`],
+                    row
+                  )
+                "
                 >确认</el-button
               >
               <el-button
-                type="danger"
                 size="small"
-                @click="row[column.key] = row[`${column.key}Old`]"
+                @click="row[column.key] = row[`${column.key}-old`]"
                 >取消</el-button
               >
             </template>
@@ -181,7 +189,7 @@ type ButtonType =
   | "default";
 
 interface TableColumn {
-  type?: "selection" | "index" | "actions" | "image";
+  type?: "selection" | "index" | "image";
   key?: string;
   label?: string;
   width?: number;
@@ -202,8 +210,12 @@ interface TableColumn {
   switch?: {
     change: (value: any, row: Record<string, any>) => void;
   };
-  edit?: {
-    change: (value: any, row: Record<string, any>) => void;
+  input?: {
+    type?: "text" | "number" | "textarea";
+    maxlength?: number;
+    placeholder?: string;
+    change: (newValue: any, oldValue: any, row: Record<string, any>) => void;
+    disabled?: (row: Record<string, any>) => boolean;
   };
   buttons?: {
     text: string;
@@ -220,6 +232,7 @@ interface TableColumn {
 interface Props {
   listData: Record<string, any>[];
   config: TableColumn[];
+  indexOffset: number;
 }
 
 const props = defineProps<Props>();
@@ -227,16 +240,6 @@ const emit = defineEmits(["selection-change"]);
 
 const handleSelectionChange = (selection: Record<string, any>[]) => {
   emit("selection-change", selection);
-};
-
-const handleColspan = (scope: {
-  row: Record<string, any>;
-  column: TableColumnCtx<any>;
-}) => {
-  const currentColumn = props.config.find(
-    (col) => col.key === scope.column.property
-  );
-  return currentColumn?.colspan?.(scope.row, currentColumn) ?? 1;
 };
 
 const formatCellValue = (value: any, column: TableColumn) => {
@@ -260,12 +263,12 @@ const formatCellValue = (value: any, column: TableColumn) => {
 .el-table {
   width: 100%;
 }
-.edit-wrapper {
+.input-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.edit-wrapper .el-button + .el-button {
+.input-wrapper .el-button + .el-button {
   margin-left: 0;
 }
 </style>

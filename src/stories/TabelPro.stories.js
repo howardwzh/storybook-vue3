@@ -33,9 +33,9 @@ Basic.args = {
       editable: true,
       province: "广东",
       city: "深圳",
-      mergeable: true,
       region: "南方",
-      images: "https://placeholder.co/80x80",
+      images:
+        "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png",
     },
     {
       id: 2,
@@ -48,9 +48,9 @@ Basic.args = {
       editable: false,
       province: "北京",
       city: "北京",
-      mergeable: false,
-      region: "北方",
-      images: "https://placeholder.co/80x80",
+      region: "",
+      images:
+        "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png",
     },
   ],
   config: [
@@ -100,17 +100,16 @@ Basic.args = {
     {
       key: "region",
       label: "区域",
-      colspan: (row) => (row.mergeable ? 2 : 1),
+      defaultValue: "暂无",
     },
     {
       key: "score",
       label: "分数",
-
-      defaultValue: "暂无",
-      edit: {
-        change: (val, row) => {
-          console.log("分数改变:", val, row);
-          setTimeout(() => (row["score"] = row["scoreOld"]), 500);
+      input: {
+        disabled: (row) => !row.editable,
+        change: (newVal, oldVal, row) => {
+          console.log("分数改变:", newVal, row);
+          setTimeout(() => (row["score"] = oldVal), 500);
         },
       },
       width: 200,
@@ -144,7 +143,6 @@ Basic.args = {
       size: { width: "auto", height: 80 },
     },
     {
-      type: "actions",
       label: "操作",
       width: 200,
       buttons: [
@@ -167,4 +165,5 @@ Basic.args = {
       width: 200,
     },
   ],
+  indexOffset: 10,
 };
