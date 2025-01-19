@@ -158,6 +158,36 @@
               >
             </template>
           </div>
+          <template v-else-if="column.tag">
+            <div class="tags-wrapper">
+              <template v-if="Array.isArray(row[column.key])">
+                <el-tag
+                  v-for="(value, index) in row[column.key]"
+                  :key="index"
+                  :type="
+                    typeof column.tag.type === 'function'
+                      ? column.tag.type(row, value)
+                      : column.tag.type
+                  "
+                  :effect="column.tag.effect || 'dark'"
+                >
+                  {{ formatTagValue(value, column) }}
+                </el-tag>
+              </template>
+              <template v-else>
+                <el-tag
+                  :type="
+                    typeof column.tag.type === 'function'
+                      ? column.tag.type(row, row[column.key])
+                      : column.tag.type
+                  "
+                  :effect="column.tag.effect || 'dark'"
+                >
+                  {{ formatCellValue(row[column.key], column) }}
+                </el-tag>
+              </template>
+            </div>
+          </template>
           <template v-else>
             <span :style="column.cellStyle?.(row, column)">
               {{ column.key ? formatCellValue(row[column.key], column) : "" }}
@@ -177,6 +207,7 @@ import {
   ElButton,
   ElSwitch,
   ElImage,
+  ElTag,
 } from "element-plus";
 
 type ButtonType =
@@ -187,6 +218,8 @@ type ButtonType =
   | "info"
   | "text"
   | "default";
+
+type TagType = "primary" | "success" | "warning" | "info" | "danger";
 
 interface TableColumn {
   type?: "selection" | "index" | "image";
@@ -227,6 +260,10 @@ interface TableColumn {
   size?: { width: number; height: number };
   preview?: boolean;
   fixed?: boolean;
+  tag?: {
+    type?: TagType | ((row: Record<string, any>, value?: any) => TagType);
+    effect?: "dark" | "light" | "plain";
+  };
 }
 
 interface Props {
@@ -235,7 +272,7 @@ interface Props {
   indexOffset: number;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {});
 const emit = defineEmits(["selection-change"]);
 
 const handleSelectionChange = (selection: Record<string, any>[]) => {
@@ -257,6 +294,16 @@ const formatCellValue = (value: any, column: TableColumn) => {
 
   return value;
 };
+
+const formatTagValue = (value: any, column: TableColumn) => {
+  if (typeof value === "object" && value !== null) {
+    // If the value is an object, try to get a display property
+    return (
+      value.label || value.name || value.text || value.value || value.toString()
+    );
+  }
+  return formatCellValue(value, column);
+};
 </script>
 
 <style scoped>
@@ -270,5 +317,13 @@ const formatCellValue = (value: any, column: TableColumn) => {
 }
 .input-wrapper .el-button + .el-button {
   margin-left: 0;
+}
+.tags-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tags-wrapper .el-tag {
+  margin: 0;
 }
 </style>

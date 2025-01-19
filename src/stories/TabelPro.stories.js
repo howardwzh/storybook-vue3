@@ -9,14 +9,28 @@ export default {
 const Template = (args) => ({
   components: { TabelPro },
   setup() {
-    return { args };
+    const handleDelete = (row) => {
+      console.log("删除:", row);
+    };
+
+    const handleCreate = () => {
+      console.log("新增");
+    };
+
+    return { args, handleDelete, handleCreate };
   },
-  template: `<TabelPro v-bind="args">
-  <template #actionsSlot="{ row }">
-    <el-button type="primary" @click="console.log('edit',row)">编辑</el-button>
-    <el-button type="danger" @click="console.log('delete',row)">删除</el-button>
-  </template>
-  </TabelPro>`,
+  template: `
+    <TabelPro 
+      v-bind="args" 
+      @delete="handleDelete"
+      @create="handleCreate"
+    >
+      <template #actionsSlot="{ row }">
+        <el-button type="primary" @click="console.log('edit',row)">编辑</el-button>
+        <el-button type="danger" @click="handleDelete(row)">删除</el-button>
+      </template>
+    </TabelPro>
+  `,
 });
 
 export const Basic = Template.bind({});
@@ -36,6 +50,16 @@ Basic.args = {
       region: "南方",
       images:
         "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png",
+      tags: ["前端", "Vue", "React"],
+      roles: [
+        { name: "管理员", type: "danger" },
+        { name: "开发者", type: "success" },
+      ],
+      skills: [
+        { label: "Vue", level: "expert" },
+        { label: "React", level: "intermediate" },
+        { label: "Angular", level: "beginner" },
+      ],
     },
     {
       id: 2,
@@ -51,6 +75,12 @@ Basic.args = {
       region: "",
       images:
         "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png",
+      tags: ["后端", "Java", "Python"],
+      roles: [{ name: "测试", type: "warning" }],
+      skills: [
+        { label: "Java", level: "expert" },
+        { label: "Python", level: "intermediate" },
+      ],
     },
   ],
   config: [
@@ -83,6 +113,55 @@ Basic.args = {
         { text: "女", value: 0 },
       ],
       filterMethod: (value, row) => row.sex === value,
+      tag: {
+        type: (row, value) =>
+          ({
+            1: "primary",
+            0: "danger",
+          }[value]),
+      },
+    },
+    {
+      key: "tags",
+      label: "标签",
+      width: 200,
+      tag: {
+        type: (row, value) => {
+          const typeMap = {
+            前端: "success",
+            后端: "info",
+            Vue: "success",
+            React: "info",
+            Java: "warning",
+            Python: "warning",
+          };
+          return typeMap[value] || "info";
+        },
+        effect: "light",
+      },
+    },
+    {
+      key: "roles",
+      label: "角色",
+      width: 200,
+      tag: {
+        type: (row, value) => value.type,
+        effect: "dark",
+      },
+    },
+    {
+      key: "skills",
+      label: "技能",
+      width: 300,
+      tag: {
+        type: (row, value) =>
+          ({
+            expert: "success",
+            intermediate: "warning",
+            beginner: "info",
+          }[value.level]),
+        effect: "plain",
+      },
     },
     {
       key: "createdAt",
@@ -152,18 +231,16 @@ Basic.args = {
           click: (row) => console.log("编辑:", row),
           disabled: (row) => !row.editable,
         },
-        {
-          text: "删除",
-          type: "danger",
-          click: (row) => console.log("删除:", row),
-        },
       ],
     },
     {
       label: "操作(slot)",
       slot: "actionsSlot",
       width: 200,
+      hideDelete: true,
     },
   ],
   indexOffset: 10,
+  showDelete: true,
+  showCreate: true,
 };
