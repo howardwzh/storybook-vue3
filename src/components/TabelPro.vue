@@ -4,7 +4,10 @@
     style="width: 100%"
     @selection-change="handleSelectionChange"
   >
-    <template v-for="column in config" :key="column.key || column.type">
+    <template
+      v-for="column in config"
+      :key="column.key || column.type"
+    >
       <!-- Selection Column -->
       <el-table-column
         v-if="column.type === 'selection'"
@@ -31,8 +34,26 @@
         :fixed="column.fixed"
       >
         <template #default="{ row }">
-          <template v-for="(btn, index) in column.buttons" :key="index">
+          <template
+            v-for="(btn, index) in column.buttons"
+            :key="index"
+          >
+            <el-popconfirm
+              v-if="btn.popconfirmText"
+              :title="btn.popconfirmText"
+              @confirm="btn.click(row)"
+            >
+              <template #reference>
+                <el-button
+                  :type="btn.type"
+                  :disabled="btn.disabled?.(row)"
+                >
+                  {{ btn.text }}
+                </el-button>
+              </template>
+            </el-popconfirm>
             <el-button
+              v-else
               :type="btn.type"
               :disabled="btn.disabled?.(row)"
               @click="btn.click(row)"
@@ -56,6 +77,7 @@
             v-if="column.key && row[column.key]"
             :src="row[column.key]"
             :preview-src-list="column.preview ? [row[column.key]] : []"
+            preview-teleported
             :style="{
               width: column.size?.width + 'px',
               height: column.size?.height + 'px',
@@ -72,7 +94,10 @@
         :fixed="column.fixed"
       >
         <template #default="{ row }">
-          <slot :name="column.slot" :row="row" />
+          <slot
+            :name="column.slot"
+            :row="row"
+          />
         </template>
       </el-table-column>
 
@@ -84,7 +109,10 @@
           :align="column.align"
           :fixed="column.fixed"
         >
-          <template v-for="child in column.children" :key="child.key">
+          <template
+            v-for="child in column.children"
+            :key="child.key"
+          >
             <el-table-column
               :prop="child.key"
               :label="child.label"
@@ -107,14 +135,20 @@
         :fixed="column.fixed"
         v-show="!column.hidden"
       >
-        <template #default="{ row }" v-if="column.key">
+        <template
+          #default="{ row, $index }"
+          v-if="column.key"
+        >
           <template v-if="column.switch">
             <el-switch
               v-model="row[column.key]"
               @change="(val) => column.switch?.change(val, row)"
             />
           </template>
-          <div class="input-wrapper" v-else-if="column.input">
+          <div
+            class="input-wrapper"
+            v-else-if="column.input"
+          >
             <el-input
               v-model="row[column.key]"
               :type="column.input?.type || 'text'"
@@ -122,33 +156,18 @@
               :maxlength="column.input?.maxlength"
               :show-word-limit="!!column.input?.maxlength"
               :disabled="column.input?.disabled?.(row)"
-              @focus="
-                column.key &&
-                  !row[`${column.key}-old`] &&
-                  (row[`${column.key}-old`] = row[column.key])
-              "
+              @focus="column.key && !row[`${column.key}-old`] && (row[`${column.key}-old`] = row[column.key])"
               @blur="
                 column.key &&
                   row[`${column.key}-old`].toString() === row[column.key] &&
                   (row[`${column.key}-old`] = undefined)
               "
             />
-            <template
-              v-if="
-                row[`${column.key}-old`] !== undefined &&
-                row[`${column.key}-old`] !== row[column.key]
-              "
-            >
+            <template v-if="row[`${column.key}-old`] !== undefined && row[`${column.key}-old`] !== row[column.key]">
               <el-button
                 type="primary"
                 size="small"
-                @click="
-                  column.input?.change(
-                    row[column.key],
-                    row[`${column.key}-old`],
-                    row
-                  )
-                "
+                @click="column.input?.change(row[column.key], row[`${column.key}-old`], row)"
                 >确认</el-button
               >
               <el-button
@@ -161,25 +180,45 @@
           <template v-else-if="column.tag">
             <div class="tags-wrapper">
               <template v-if="Array.isArray(row[column.key])">
-                <el-tag
+                <template
                   v-for="(value, index) in row[column.key]"
                   :key="index"
-                  :type="
-                    typeof column.tag.type === 'function'
-                      ? column.tag.type(row, value)
-                      : column.tag.type
-                  "
-                  :effect="column.tag.effect || 'dark'"
                 >
-                  {{ formatTagValue(value, column) }}
-                </el-tag>
+                  <el-tag
+                    :type="typeof column.tag.type === 'function' ? column.tag.type(row, value) : column.tag.type"
+                    :effect="column.tag.effect || 'dark'"
+                    :closable="column.tag.closable"
+                    @close="handleTagClose(row, column, index)"
+                  >
+                    {{ formatTagValue(value, column) }}
+                  </el-tag>
+                </template>
+                <div
+                  v-if="column.tag.addable"
+                  class="tag-input-wrapper"
+                >
+                  <el-input
+                    v-if="tempBooleans[getRowColumnKey(row, column, $index)]"
+                    :id="getRowColumnKey(row, column, $index)"
+                    v-model="tagInputValues[getRowColumnKey(row, column, $index)]"
+                    :placeholder="column.tag.addPlaceholder || '请输入'"
+                    size="small"
+                    @keyup.enter="handleTagAdd(row, column, $index)"
+                    @blur="handleTagInputBlur(row, column, $index)"
+                  />
+                  <el-button
+                    v-else
+                    size="small"
+                    @click="(event: MouseEvent)=>showTagInput(row, column, $index)"
+                  >
+                    + 新标签
+                  </el-button>
+                </div>
               </template>
               <template v-else>
                 <el-tag
                   :type="
-                    typeof column.tag.type === 'function'
-                      ? column.tag.type(row, row[column.key])
-                      : column.tag.type
+                    typeof column.tag.type === 'function' ? column.tag.type(row, row[column.key]) : column.tag.type
                   "
                   :effect="column.tag.effect || 'dark'"
                 >
@@ -190,7 +229,7 @@
           </template>
           <template v-else>
             <span :style="column.cellStyle?.(row, column)">
-              {{ column.key ? formatCellValue(row[column.key], column) : "" }}
+              {{ column.key ? formatCellValue(row[column.key], column) : '' }}
             </span>
           </template>
         </template>
@@ -200,130 +239,213 @@
 </template>
 
 <script setup lang="ts">
-import type { TableColumnCtx } from "element-plus";
-import {
-  ElTable,
-  ElTableColumn,
-  ElButton,
-  ElSwitch,
-  ElImage,
-  ElTag,
-} from "element-plus";
+  import { ref, nextTick } from 'vue';
+  import {
+    ElTable,
+    ElTableColumn,
+    ElButton,
+    ElSwitch,
+    ElImage,
+    ElTag,
+    ElInput,
+    ElPopconfirm,
+    ElMessage,
+  } from 'element-plus';
 
-type ButtonType =
-  | "primary"
-  | "success"
-  | "warning"
-  | "danger"
-  | "info"
-  | "text"
-  | "default";
+  type ButtonType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'text' | 'default';
 
-type TagType = "primary" | "success" | "warning" | "info" | "danger";
+  type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger';
 
-interface TableColumn {
-  type?: "selection" | "index" | "image";
-  key?: string;
-  label?: string;
-  width?: number;
-  align?: "left" | "center" | "right";
-  hidden?: boolean;
-  sortable?: boolean;
-  filters?: { text: string; value: any }[];
-  filterMethod?: (value: any, row: Record<string, any>) => boolean;
-  colspan?: (row: Record<string, any>, column: TableColumn) => number;
-  dictionary?: Record<string | number, string>;
-  formatter?: (value: any) => string;
-  cellStyle?: (
-    row: Record<string, any>,
-    column: TableColumn
-  ) => Record<string, string>;
-  defaultValue?: string;
-  children?: TableColumn[];
-  switch?: {
-    change: (value: any, row: Record<string, any>) => void;
+  interface TableColumn {
+    type?: 'selection' | 'index' | 'image';
+    key?: string;
+    label?: string;
+    width?: number;
+    align?: 'left' | 'center' | 'right';
+    hidden?: boolean;
+    sortable?: boolean;
+    filters?: { text: string; value: any }[];
+    filterMethod?: (value: any, row: Record<string, any>) => boolean;
+    colspan?: (row: Record<string, any>, column: TableColumn) => number;
+    dictionary?: Record<string | number, string>;
+    formatter?: (value: any) => string;
+    cellStyle?: (row: Record<string, any>, column: TableColumn) => Record<string, string>;
+    defaultValue?: string;
+    children?: TableColumn[];
+    switch?: {
+      change: (value: any, row: Record<string, any>) => void;
+    };
+    input?: {
+      type?: 'text' | 'number' | 'textarea';
+      maxlength?: number;
+      placeholder?: string;
+      change: (newValue: any, oldValue: any, row: Record<string, any>) => void;
+      disabled?: (row: Record<string, any>) => boolean;
+    };
+    buttons?: {
+      text: string;
+      type: ButtonType;
+      click: (row: Record<string, any>) => void;
+      disabled?: (row: Record<string, any>) => boolean;
+      popconfirmText?: string;
+    }[];
+    slot?: string;
+    size?: { width: number; height: number };
+    preview?: boolean;
+    fixed?: boolean;
+    tag?: {
+      type?: TagType | ((row: Record<string, any>, value?: any) => TagType);
+      effect?: 'dark' | 'light' | 'plain';
+      closable?: boolean;
+      addable?: boolean;
+      addPlaceholder?: string;
+      beforeAdd?: (value: string, row: Record<string, any>) => boolean | Promise<boolean>;
+      beforeRemove?: (index: number, value: any, row: Record<string, any>) => boolean | Promise<boolean>;
+      onAdd?: (value: string, row: Record<string, any>) => void;
+      onRemove?: (index: number, value: any, row: Record<string, any>) => void;
+    };
+  }
+
+  interface Props {
+    listData: Record<string, any>[];
+    config: TableColumn[];
+    indexOffset: number;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {});
+  const emit = defineEmits(['selection-change']);
+
+  // Store input values for tag adding
+  const tagInputValues = ref<Record<string, string>>({});
+  const tempBooleans = ref<Record<string, boolean>>({});
+
+  const getRowColumnKey = (row: Record<string, any>, column: TableColumn, index: number) => {
+    return `${index}-${row.id || ''}-${column.key || ''}`;
   };
-  input?: {
-    type?: "text" | "number" | "textarea";
-    maxlength?: number;
-    placeholder?: string;
-    change: (newValue: any, oldValue: any, row: Record<string, any>) => void;
-    disabled?: (row: Record<string, any>) => boolean;
+
+  const handleSelectionChange = (selection: Record<string, any>[]) => {
+    emit('selection-change', selection);
   };
-  buttons?: {
-    text: string;
-    type: ButtonType;
-    click: (row: Record<string, any>) => void;
-    disabled?: (row: Record<string, any>) => boolean;
-  }[];
-  slot?: string;
-  size?: { width: number; height: number };
-  preview?: boolean;
-  fixed?: boolean;
-  tag?: {
-    type?: TagType | ((row: Record<string, any>, value?: any) => TagType);
-    effect?: "dark" | "light" | "plain";
+
+  const handleTagInputBlur = (row: Record<string, any>, column: TableColumn, index: number) => {
+    const inputKey = getRowColumnKey(row, column, index);
+    !tagInputValues.value[inputKey] && (tempBooleans.value[inputKey] = false);
   };
-}
 
-interface Props {
-  listData: Record<string, any>[];
-  config: TableColumn[];
-  indexOffset: number;
-}
+  const showTagInput = (row: Record<string, any>, column: TableColumn, index: number) => {
+    const inputKey = getRowColumnKey(row, column, index);
+    tempBooleans.value[inputKey] = true;
+    nextTick(() => {
+      const input = document.getElementById(inputKey) as HTMLInputElement;
+      input?.focus();
+    });
+  };
 
-const props = withDefaults(defineProps<Props>(), {});
-const emit = defineEmits(["selection-change"]);
+  const handleTagClose = async (row: Record<string, any>, column: TableColumn, index: number) => {
+    if (!column.key) return;
 
-const handleSelectionChange = (selection: Record<string, any>[]) => {
-  emit("selection-change", selection);
-};
+    const value = row[column.key][index];
 
-const formatCellValue = (value: any, column: TableColumn) => {
-  if (value === undefined || value === null || value === "") {
-    return column.defaultValue || "";
-  }
+    if (column.tag?.beforeRemove) {
+      const canRemove = await column.tag.beforeRemove(index, value, row);
+      if (!canRemove) return;
+    }
 
-  if (column.dictionary && value in column.dictionary) {
-    return column.dictionary[value];
-  }
+    const newValue = [...row[column.key]];
+    newValue.splice(index, 1);
+    row[column.key] = newValue;
 
-  if (column.formatter) {
-    return column.formatter(value);
-  }
+    column.tag?.onRemove?.(index, value, row);
+  };
 
-  return value;
-};
+  const handleTagAdd = async (row: Record<string, any>, column: TableColumn, index: number) => {
+    if (!column.key) return;
 
-const formatTagValue = (value: any, column: TableColumn) => {
-  if (typeof value === "object" && value !== null) {
-    // If the value is an object, try to get a display property
-    return (
-      value.label || value.name || value.text || value.value || value.toString()
-    );
-  }
-  return formatCellValue(value, column);
-};
+    const inputKey = getRowColumnKey(row, column, index);
+    const value = tagInputValues.value[inputKey]?.trim();
+
+    if (!value) return;
+
+    // Check for duplicate tags
+    if (Array.isArray(row[column.key]) && row[column.key].includes(value)) {
+      ElMessage.warning('标签已存在');
+      return;
+    }
+
+    if (column.tag?.beforeAdd) {
+      const canAdd = await column.tag.beforeAdd(value, row);
+      if (!canAdd) return;
+    }
+
+    if (!Array.isArray(row[column.key])) {
+      row[column.key] = [];
+    }
+
+    const newValue = [...row[column.key], value];
+    row[column.key] = newValue;
+
+    column.tag?.onAdd?.(value, row);
+
+    // Clear input
+    tagInputValues.value[inputKey] = '';
+  };
+
+  const formatCellValue = (value: any, column: TableColumn) => {
+    if (value === undefined || value === null || value === '') {
+      return column.defaultValue || '';
+    }
+
+    if (column.dictionary && value in column.dictionary) {
+      return column.dictionary[value];
+    }
+
+    if (column.formatter) {
+      return column.formatter(value);
+    }
+
+    return value;
+  };
+
+  const formatTagValue = (value: any, column: TableColumn) => {
+    if (typeof value === 'object' && value !== null) {
+      // If the value is an object, try to get a display property
+      return value.label || value.name || value.text || value.value || value.toString();
+    }
+    return formatCellValue(value, column);
+  };
 </script>
 
 <style scoped>
-.el-table {
-  width: 100%;
-}
-.input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.input-wrapper .el-button + .el-button {
-  margin-left: 0;
-}
-.tags-wrapper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.tags-wrapper .el-tag {
-  margin: 0;
-}
+  .el-table {
+    width: 100%;
+  }
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .input-wrapper .el-button + .el-button {
+    margin-left: 0;
+  }
+  .tags-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+  .tags-wrapper .el-tag {
+    margin: 0;
+    cursor: default;
+  }
+  .tags-wrapper .el-tag.is-closable {
+    cursor: pointer;
+  }
+  .tag-input-wrapper {
+    width: 70px;
+    line-height: 24px;
+  }
+  .tag-input-wrapper .el-input,
+  .tag-input-wrapper .el-button {
+    width: 100%;
+  }
 </style>
