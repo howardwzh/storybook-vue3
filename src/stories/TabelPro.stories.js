@@ -31,7 +31,7 @@ const Template = (args) => ({
 
 export const Basic = Template.bind({});
 Basic.args = {
-  listData: [
+  tableData: [
     {
       id: 1,
       name: '张三',

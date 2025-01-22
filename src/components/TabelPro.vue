@@ -1,8 +1,9 @@
 <template>
   <el-table
-    :data="listData"
+    :data="tableData"
     style="width: 100%"
     @selection-change="handleSelectionChange"
+    border
   >
     <template
       v-for="column in config"
@@ -13,6 +14,8 @@
         v-if="column.type === 'selection'"
         type="selection"
         :width="column.width"
+        :min-width="column.minWidth"
+        :align="column.align"
         :fixed="column.fixed"
       />
 
@@ -23,6 +26,8 @@
         :index="indexOffset || 0"
         :label="column.label"
         :width="column.width"
+        :min-width="column.minWidth"
+        :align="column.align"
         :fixed="column.fixed"
       />
 
@@ -31,34 +36,46 @@
         v-else-if="column.buttons"
         :label="column.label"
         :width="column.width"
+        :min-width="column.minWidth"
+        :align="column.align"
         :fixed="column.fixed"
       >
+        <!-- popconfirmTitle?: string
+    popconfirmBtnText?: string
+    popcancelBtnText?: string
+    width?: string -->
         <template #default="{ row }">
           <template
             v-for="(btn, index) in column.buttons"
             :key="index"
           >
             <el-popconfirm
-              v-if="btn.popconfirmText"
-              :title="btn.popconfirmText"
+              v-if="btn.popconfirmTitle"
+              :title="checkFnAndReturnVal(btn.popconfirmTitle, row)"
+              :confirm-button-text="btn.popconfirmBtnText"
+              :cancel-button-text="btn.popcancelBtnText"
+              :icon="btn.popconfirmIcon"
+              :icon-color="btn.popconfirmIconColor"
+              :width="btn.width"
               @confirm="btn.click(row)"
             >
               <template #reference>
                 <el-button
-                  :type="btn.type"
-                  :disabled="btn.disabled?.(row)"
+                  :icon="btn.icon"
+                  :type="checkFnAndReturnVal(btn.type, row)"
                 >
-                  {{ btn.text }}
+                  {{ checkFnAndReturnVal(btn.text, row) }}
                 </el-button>
               </template>
             </el-popconfirm>
             <el-button
               v-else
-              :type="btn.type"
+              :type="checkFnAndReturnVal(btn.type, row)"
+              :icon="btn.icon"
               :disabled="btn.disabled?.(row)"
               @click="btn.click(row)"
             >
-              {{ btn.text }}
+              {{ checkFnAndReturnVal(btn.text, row) }}
             </el-button>
           </template>
         </template>
@@ -70,6 +87,8 @@
         :prop="column.key"
         :label="column.label"
         :width="column.width"
+        :min-width="column.minWidth"
+        :align="column.align"
         :fixed="column.fixed"
       >
         <template #default="{ row }">
@@ -86,11 +105,34 @@
         </template>
       </el-table-column>
 
+      <!-- Image Column -->
+      <el-table-column
+        v-else-if="column.type === 'link'"
+        :prop="column.key"
+        :label="column.label"
+        :width="column.width"
+        :min-width="column.minWidth"
+        :align="column.align"
+        :fixed="column.fixed"
+      >
+        <template #default="{ row }">
+          <a
+            class="element-to-lj"
+            :href="(column.checkSSL && column.checkSSL(row) ? 'http://' : 'https://') + row[column.key]"
+            target="_blank"
+          >
+            {{ row[column.key] }}
+          </a>
+        </template>
+      </el-table-column>
+
       <!-- Custom Slot Column -->
       <el-table-column
         v-else-if="column.slot"
         :label="column.label"
         :width="column.width"
+        :min-width="column.minWidth"
+        :align="column.align"
         :fixed="column.fixed"
       >
         <template #default="{ row }">
@@ -106,6 +148,7 @@
         <el-table-column
           :label="column.label"
           :width="column.width"
+          :min-width="column.minWidth"
           :align="column.align"
           :fixed="column.fixed"
         >
@@ -128,6 +171,7 @@
         :prop="column.key"
         :label="column.label"
         :width="column.width"
+        :min-width="column.minWidth"
         :align="column.align"
         :sortable="column.sortable"
         :filters="column.filters"
@@ -142,7 +186,24 @@
           <template v-if="column.switch">
             <el-switch
               v-model="row[column.key]"
-              @change="(val) => column.switch?.change(val, row)"
+              :style="{
+                '--el-switch-on-color': column.switch?.onColor || '#13ce66',
+                '--el-switch-off-color': column.switch?.offColor || '#ff4949',
+              }"
+              :active-value="column.switch?.activeValue"
+              :inactive-value="column.switch?.inactiveValue"
+              :active-text="column.switch?.activeText"
+              :inactive-text="column.switch?.inactiveText"
+              inline-prompt
+              :loading="row.loading"
+              @change="
+                (val) =>
+                  column.switch?.change(
+                    val,
+                    val === column.switch?.activeValue ? column.switch?.inactiveValue : column.switch?.activeValue,
+                    row
+                  )
+              "
             />
           </template>
           <div
@@ -168,8 +229,9 @@
                 type="primary"
                 size="small"
                 @click="column.input?.change(row[column.key], row[`${column.key}-old`], row)"
-                >确认</el-button
               >
+                确认
+              </el-button>
               <el-button
                 size="small"
                 @click="row[column.key] = row[`${column.key}-old`]"
@@ -185,7 +247,7 @@
                   :key="index"
                 >
                   <el-tag
-                    :type="typeof column.tag.type === 'function' ? column.tag.type(row, value) : column.tag.type"
+                    :type="checkFnAndReturnVal(column.tag.type, row, value)"
                     :effect="column.tag.effect || 'dark'"
                     :closable="column.tag.closable"
                     @close="handleTagClose(row, column, index)"
@@ -209,7 +271,7 @@
                   <el-button
                     v-else
                     size="small"
-                    @click="(event: MouseEvent)=>showTagInput(row, column, $index)"
+                    @click="(event: MouseEvent) => showTagInput(row, column, $index)"
                   >
                     + 新标签
                   </el-button>
@@ -217,9 +279,7 @@
               </template>
               <template v-else>
                 <el-tag
-                  :type="
-                    typeof column.tag.type === 'function' ? column.tag.type(row, row[column.key]) : column.tag.type
-                  "
+                  :type="checkFnAndReturnVal(column.tag.type, row, row[column.key])"
                   :effect="column.tag.effect || 'dark'"
                 >
                   {{ formatCellValue(row[column.key], column) }}
@@ -256,24 +316,27 @@
 
   type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger';
 
-  interface TableColumn {
-    type?: 'selection' | 'index' | 'image';
+  export interface TableColumn {
+    type?: 'selection' | 'index' | 'image' | 'link';
     key?: string;
     label?: string;
     width?: number;
+    minWidth?: number;
     align?: 'left' | 'center' | 'right';
     hidden?: boolean;
     sortable?: boolean;
     filters?: { text: string; value: any }[];
-    filterMethod?: (value: any, row: Record<string, any>) => boolean;
-    colspan?: (row: Record<string, any>, column: TableColumn) => number;
     dictionary?: Record<string | number, string>;
-    formatter?: (value: any) => string;
-    cellStyle?: (row: Record<string, any>, column: TableColumn) => Record<string, string>;
     defaultValue?: string;
     children?: TableColumn[];
     switch?: {
-      change: (value: any, row: Record<string, any>) => void;
+      activeValue: any;
+      inactiveValue: any;
+      onColor?: string;
+      offColor?: string;
+      activeText?: string;
+      inactiveText?: string;
+      change: (newValue: any, oldValue: any, row: Record<string, any>) => void;
     };
     input?: {
       type?: 'text' | 'number' | 'textarea';
@@ -283,11 +346,17 @@
       disabled?: (row: Record<string, any>) => boolean;
     };
     buttons?: {
-      text: string;
-      type: ButtonType;
+      type: ButtonType | ((row: Record<string, any>) => ButtonType);
       click: (row: Record<string, any>) => void;
+      text?: string | ((row: Record<string, any>) => string);
+      icon?: any;
       disabled?: (row: Record<string, any>) => boolean;
-      popconfirmText?: string;
+      popconfirmTitle?: string | ((row: Record<string, any>) => string);
+      popconfirmBtnText?: string;
+      popcancelBtnText?: string;
+      popconfirmIcon?: any;
+      popconfirmIconColor?: string;
+      width?: string;
     }[];
     slot?: string;
     size?: { width: number; height: number };
@@ -304,12 +373,17 @@
       onAdd?: (value: string, row: Record<string, any>) => void;
       onRemove?: (index: number, value: any, row: Record<string, any>) => void;
     };
+    filterMethod?: (value: any, row: Record<string, any>) => boolean;
+    colspan?: (row: Record<string, any>, column: TableColumn) => number;
+    formatter?: (value: any) => string;
+    cellStyle?: (row: Record<string, any>, column: TableColumn) => Record<string, string>;
+    checkSSL?: (row: Record<string, any>) => boolean;
   }
 
   interface Props {
-    listData: Record<string, any>[];
+    tableData: Record<string, any>[];
     config: TableColumn[];
-    indexOffset: number;
+    indexOffset?: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {});
@@ -322,6 +396,12 @@
   const getRowColumnKey = (row: Record<string, any>, column: TableColumn, index: number) => {
     return `${index}-${row.id || ''}-${column.key || ''}`;
   };
+
+  const checkFnAndReturnVal = (
+    val: any | ((row: Record<string, any>) => any),
+    row: Record<string, any>,
+    argsValue?: any
+  ) => (typeof val === 'function' ? val(row, argsValue) : val);
 
   const handleSelectionChange = (selection: Record<string, any>[]) => {
     emit('selection-change', selection);
@@ -418,6 +498,7 @@
 <style scoped>
   .el-table {
     width: 100%;
+    font-size: 14px;
   }
   .input-wrapper {
     display: flex;
@@ -436,6 +517,7 @@
   .tags-wrapper .el-tag {
     margin: 0;
     cursor: default;
+    font-size: 12px;
   }
   .tags-wrapper .el-tag.is-closable {
     cursor: pointer;

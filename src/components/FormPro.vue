@@ -16,13 +16,13 @@
         :label="item.label ? `${item.label} :` : ''"
         :label-width="labelWidth || '0'"
         :style="{ width: item.width || itemWidth }"
-        :prop="item.key"
+        :prop="getItemKey(item)"
       >
         <div class="item-input-wrapper">
           <!-- Render el-input when type is not specified or is 'input' -->
           <el-input
             v-if="!item.type || item.type === 'input'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
             :maxlength="item.maxLength"
             :show-word-limit="!!item.maxLength"
             :placeholder="item.placeholder || '请输入'"
@@ -34,7 +34,7 @@
           <!-- Render el-select for dropdown options -->
           <el-select
             v-else-if="item.type === 'select'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
             :placeholder="item.placeholder || '请选择'"
             :disabled="item.checkDisabled && item.checkDisabled(formData)"
             clearable
@@ -51,7 +51,7 @@
           <!-- Render el-checkbox-group for multiple selection -->
           <el-checkbox-group
             v-else-if="item.type === 'checkbox-group'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
           >
             <el-checkbox
               v-for="option in item.options"
@@ -66,7 +66,7 @@
           <!-- Render el-switch for toggles -->
           <el-switch
             v-else-if="item.type === 'switch'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
             :active-text="item.activeText"
             :inactive-text="item.inactiveText"
           />
@@ -75,7 +75,7 @@
           <el-date-picker
             v-else-if="item.type === 'daterange' || item.type === 'datetimerange'"
             @change="(d: any) => handleRangeDate(d, item)"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
             :type="item.type"
             :start-placeholder="item.startPlaceholder || '开始日期'"
             :end-placeholder="item.endPlaceholder || '结束日期'"
@@ -88,7 +88,7 @@
           <!-- Render el-date-picker for date selection -->
           <el-date-picker
             v-else-if="item.type === 'date' || item.type === 'datetime'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
             :type="item.type"
             :placeholder="item.placeholder || '请选择日期'"
             :disabled="item.checkDisabled && item.checkDisabled(formData)"
@@ -98,7 +98,7 @@
           <!-- Render el-autocomplete for suggestions -->
           <el-autocomplete
             v-else-if="item.type === 'autocomplete'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
             :fetch-suggestions="item.fetchSuggestions"
             :placeholder="item.placeholder || '请输入'"
             clearable
@@ -107,7 +107,7 @@
           <!-- Render el-input-number for numeric input -->
           <el-input-number
             v-else-if="item.type === 'input-number'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
             :min="item.min"
             :max="item.max"
             :step="item.step"
@@ -118,7 +118,7 @@
           <!-- Render el-radio-group for single selection -->
           <el-radio-group
             v-else-if="item.type === 'radio-group'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
           >
             <el-radio
               v-for="option in item.options"
@@ -133,7 +133,7 @@
           <!-- Render el-slider for range input -->
           <el-slider
             v-else-if="item.type === 'slider'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
             :min="item.min"
             :max="item.max"
             :step="item.step"
@@ -142,7 +142,7 @@
           <!-- Render el-time-picker for time selection -->
           <el-time-picker
             v-else-if="item.type === 'time-picker'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
             :is-range="item.isRange"
             :placeholder="item.placeholder || '请选择时间'"
             clearable
@@ -151,7 +151,7 @@
           <!-- Render el-time-select for predefined time options -->
           <el-time-select
             v-else-if="item.type === 'time-select'"
-            v-model="formData[item.key || '']"
+            v-model="formData[getItemKey(item)]"
             :picker-options="item.pickerOptions"
             :placeholder="item.placeholder || '请选择时间'"
             clearable
@@ -160,6 +160,7 @@
           <slot
             v-else-if="item.slot"
             :name="item.slot"
+            :data="formData"
           />
 
           <div
@@ -230,7 +231,20 @@
 <script setup lang="ts">
   import { ref, computed, watch } from 'vue';
   import { ElMessage, type FormInstance, type FormItemRule } from 'element-plus';
-  import { deleteRedundantItems } from '@/utils/formProHelper';
+  import { deleteRedundantItems, KEY_EXTRA_SUFFIX } from '../utils/formProHelper';
+
+  const getItemKey = (item: ItemInterface) => {
+    return item.key || `${item.endKey}-${KEY_EXTRA_SUFFIX}`;
+  };
+
+  const handleData = (data: Record<string, any>) => {
+    props.config.forEach((item: Record<string, any>) => {
+      if (item.endKey && data[item.endKey] && !data[getItemKey(item)]) {
+        data[getItemKey(item)] = [data[item.startKey], data[item.endKey]];
+      }
+    });
+    return data;
+  };
 
   const ruleFormRef = ref<FormInstance>();
 
@@ -253,11 +267,13 @@
       | 'radio-group'
       | 'slider'
       | 'time-picker'
-      | 'time-select'; // Type of form component to render
+      | 'time-select'
+      | 'slot';
+    // Type of form component to render
     key?: string; // Unique key for identifying the form item
     label?: string; // Label text for the form item
     placeholder?: string; // Placeholder text for input fields
-    inputType?: 'text' | 'number'; // Input type for text fields
+    inputType?: 'text' | 'number' | 'textarea'; // Input type for text fields
     maxLength?: number; // Maximum input length
     style?: boolean; // Custom styles for the form item
     rules?: Arrayable<FormItemRule>; // Validation rules
@@ -265,6 +281,7 @@
     disabledDate?: (time: Date) => boolean; // Function to determine if the item should be disabled
     options?: Record<string, any>[]; // Options for select, radio-group, and checkbox-group
     optionsLabelValue?: [string, string]; // Options for select, radio-group, and checkbox-group
+    optionsCheckDisabled?: (option: Record<string, any>) => boolean;
     activeText?: string; // Active text for switch
     inactiveText?: string; // Inactive text for switch
     fetchSuggestions?: (query: string, cb: (suggestions: any[]) => void) => void; // Function for fetching autocomplete suggestions
@@ -283,7 +300,7 @@
     append?: {
       slot?: string;
       click?: (formData: T) => void;
-      type?: string;
+      type?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'text';
       round?: boolean;
       icon?: string;
       circle?: boolean;
@@ -310,15 +327,6 @@
 
   const emit = defineEmits(['update:modelValue']);
 
-  const handleData = (data: Record<string, any>) => {
-    props.config.forEach((item: Record<string, any>) => {
-      if ((item.type === 'daterange' || item.type === 'datetimerange') && !data[item.key] && data[item.endKey]) {
-        data[item.key] = [data[item.startKey], data[item.endKey]];
-      }
-    });
-    return data;
-  };
-
   const formData = ref<Record<string, any>>(handleData(props.modelValue)); // Reactive form data object
   const isFormValid = ref(true);
 
@@ -327,8 +335,8 @@
     if (!props.config) return {};
     const _rules: Partial<Record<string, Arrayable<FormItemRule>>> = {};
     props.config.forEach((item: ItemInterface) => {
-      if (item.rules && item.key) {
-        _rules[item.key] = item.rules;
+      if (item.rules && (item.key || item.endKey)) {
+        _rules[getItemKey(item)] = item.rules;
       }
     });
     return _rules;
