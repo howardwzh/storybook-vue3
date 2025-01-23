@@ -6,7 +6,7 @@
     border
   >
     <template
-      v-for="column in config"
+      v-for="column in finalConfig"
       :key="column.key || column.type"
     >
       <!-- Selection Column -->
@@ -16,7 +16,7 @@
         :width="column.width"
         :min-width="column.minWidth"
         :align="column.align"
-        :fixed="column.fixed"
+        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
       />
 
       <!-- Index Column -->
@@ -28,7 +28,7 @@
         :width="column.width"
         :min-width="column.minWidth"
         :align="column.align"
-        :fixed="column.fixed"
+        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
       />
 
       <!-- Buttons Column -->
@@ -38,12 +38,8 @@
         :width="column.width"
         :min-width="column.minWidth"
         :align="column.align"
-        :fixed="column.fixed"
+        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
       >
-        <!-- popconfirmTitle?: string
-    popconfirmBtnText?: string
-    popcancelBtnText?: string
-    width?: string -->
         <template #default="{ row }">
           <template
             v-for="(btn, index) in column.buttons"
@@ -89,8 +85,42 @@
         :width="column.width"
         :min-width="column.minWidth"
         :align="column.align"
-        :fixed="column.fixed"
+        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
       >
+        <template #header>
+          <div :style="`align:${column.align}`">{{ column.label }}</div>
+          <slot
+            v-if="column.headerSlot"
+            :name="column.headerSlot"
+          ></slot>
+          <div
+            v-if="controllable"
+            class="header-actions"
+          >
+            <el-icon
+              :class="{ active: leftOrderConfig.indexOf(column.key) !== -1 }"
+              color="#fff"
+              size="20"
+              @click="toggleLeft(column)"
+            >
+              <DArrowLeft />
+            </el-icon>
+            <el-icon
+              :class="{ active: fixedColumns.indexOf(column.key) !== -1 }"
+              color="#fff"
+              size="20"
+              @click="toggleFixed(column)"
+            >
+              <Lock />
+            </el-icon>
+            <el-icon
+              color="#fff"
+              size="20"
+              @click="resetConfig"
+              ><Refresh
+            /></el-icon>
+          </div>
+        </template>
         <template #default="{ row }">
           <el-image
             v-if="column.key && row[column.key]"
@@ -113,8 +143,42 @@
         :width="column.width"
         :min-width="column.minWidth"
         :align="column.align"
-        :fixed="column.fixed"
+        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
       >
+        <template #header>
+          <div :style="`align:${column.align}`">{{ column.label }}</div>
+          <slot
+            v-if="column.headerSlot"
+            :name="column.headerSlot"
+          ></slot>
+          <div
+            v-if="controllable"
+            class="header-actions"
+          >
+            <el-icon
+              :class="{ active: leftOrderConfig.indexOf(column.key) !== -1 }"
+              color="#fff"
+              size="20"
+              @click="toggleLeft(column)"
+            >
+              <DArrowLeft />
+            </el-icon>
+            <el-icon
+              :class="{ active: fixedColumns.indexOf(column.key) !== -1 }"
+              color="#fff"
+              size="20"
+              @click="toggleFixed(column)"
+            >
+              <Lock />
+            </el-icon>
+            <el-icon
+              color="#fff"
+              size="20"
+              @click="resetConfig"
+              ><Refresh
+            /></el-icon>
+          </div>
+        </template>
         <template #default="{ row }">
           <a
             class="element-to-lj"
@@ -133,8 +197,42 @@
         :width="column.width"
         :min-width="column.minWidth"
         :align="column.align"
-        :fixed="column.fixed"
+        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
       >
+        <template #header>
+          <div :style="`align:${column.align}`">{{ column.label }}</div>
+          <slot
+            v-if="column.headerSlot"
+            :name="column.headerSlot"
+          ></slot>
+          <div
+            v-if="controllable"
+            class="header-actions"
+          >
+            <el-icon
+              :class="{ active: leftOrderConfig.indexOf(column.key) !== -1 }"
+              color="#fff"
+              size="20"
+              @click="toggleLeft(column)"
+            >
+              <DArrowLeft />
+            </el-icon>
+            <el-icon
+              :class="{ active: fixedColumns.indexOf(column.key) !== -1 }"
+              color="#fff"
+              size="20"
+              @click="toggleFixed(column)"
+            >
+              <Lock />
+            </el-icon>
+            <el-icon
+              color="#fff"
+              size="20"
+              @click="resetConfig"
+              ><Refresh
+            /></el-icon>
+          </div>
+        </template>
         <template #default="{ row }">
           <slot
             :name="column.slot"
@@ -150,8 +248,42 @@
           :width="column.width"
           :min-width="column.minWidth"
           :align="column.align"
-          :fixed="column.fixed"
+          :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
         >
+          <template #header>
+            <div :style="`align:${column.align}`">{{ column.label }}</div>
+            <slot
+              v-if="column.headerSlot"
+              :name="column.headerSlot"
+            ></slot>
+            <div
+              v-if="controllable"
+              class="header-actions"
+            >
+              <el-icon
+                :class="{ active: leftOrderConfig.indexOf(column.key) !== -1 }"
+                color="#fff"
+                size="20"
+                @click="toggleLeft(column)"
+              >
+                <DArrowLeft />
+              </el-icon>
+              <el-icon
+                :class="{ active: fixedColumns.indexOf(column.key) !== -1 }"
+                color="#fff"
+                size="20"
+                @click="toggleFixed(column)"
+              >
+                <Lock />
+              </el-icon>
+              <el-icon
+                color="#fff"
+                size="20"
+                @click="resetConfig"
+                ><Refresh
+              /></el-icon>
+            </div>
+          </template>
           <template
             v-for="child in column.children"
             :key="child.key"
@@ -176,9 +308,43 @@
         :sortable="column.sortable"
         :filters="column.filters"
         :filter-method="column.filterMethod"
-        :fixed="column.fixed"
+        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
         v-show="!column.hidden"
       >
+        <template #header>
+          <div :style="`align:${column.align}`">{{ column.label }}</div>
+          <slot
+            v-if="column.headerSlot"
+            :name="column.headerSlot"
+          ></slot>
+          <div
+            v-if="controllable"
+            class="header-actions"
+          >
+            <el-icon
+              :class="{ active: leftOrderConfig.indexOf(column.key) !== -1 }"
+              color="#fff"
+              size="20"
+              @click="toggleLeft(column)"
+            >
+              <DArrowLeft />
+            </el-icon>
+            <el-icon
+              :class="{ active: fixedColumns.indexOf(column.key) !== -1 }"
+              color="#fff"
+              size="20"
+              @click="toggleFixed(column)"
+            >
+              <Lock />
+            </el-icon>
+            <el-icon
+              color="#fff"
+              size="20"
+              @click="resetConfig"
+              ><Refresh
+            /></el-icon>
+          </div>
+        </template>
         <template
           #default="{ row, $index }"
           v-if="column.key"
@@ -299,7 +465,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, nextTick } from 'vue';
+  import { ref, nextTick, computed } from 'vue';
   import {
     ElTable,
     ElTableColumn,
@@ -310,7 +476,9 @@
     ElInput,
     ElPopconfirm,
     ElMessage,
+    ElIcon,
   } from 'element-plus';
+  import { DArrowLeft, Lock, Refresh } from '@element-plus/icons-vue';
 
   type ButtonType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'text' | 'default';
 
@@ -362,6 +530,7 @@
     size?: { width: number; height: number };
     preview?: boolean;
     fixed?: boolean;
+    headerSlot?: string;
     tag?: {
       type?: TagType | ((row: Record<string, any>, value?: any) => TagType);
       effect?: 'dark' | 'light' | 'plain';
@@ -384,14 +553,44 @@
     tableData: Record<string, any>[];
     config: TableColumn[];
     indexOffset?: number;
+    controllable?: boolean;
   }
 
-  const props = withDefaults(defineProps<Props>(), {});
+  const props = withDefaults(defineProps<Props>(), { controllable: true });
   const emit = defineEmits(['selection-change']);
 
   // Store input values for tag adding
+  const _preOriginOrderConfig: string[] = [];
+  const _config = props.config.map((column: TableColumn, index: number) => {
+    const key = column.key || `column-${index}`;
+    _preOriginOrderConfig.push(key);
+    return {
+      ...column,
+      key,
+    };
+  });
+  const cacheKey = JSON.stringify(_preOriginOrderConfig);
+  const cacheFixedColumns = JSON.parse(localStorage.getItem(`fixedColumns-${cacheKey}`) || 'null');
+  const cacheLeftOrderConfig = JSON.parse(localStorage.getItem(`leftOrderConfig-${cacheKey}`) || 'null');
+  const cacheOriginOrderConfig = JSON.parse(localStorage.getItem(`originOrderConfig-${cacheKey}`) || 'null');
   const tagInputValues = ref<Record<string, string>>({});
   const tempBooleans = ref<Record<string, boolean>>({});
+  const fixedColumns = ref<string[]>(cacheFixedColumns || []);
+  const leftOrderConfig = ref<string[]>(cacheLeftOrderConfig || []);
+  const originOrderConfig = ref<string[]>(cacheOriginOrderConfig || [..._preOriginOrderConfig]);
+
+  const finalConfig = computed((): TableColumn[] => {
+    const result: TableColumn[] = [];
+    leftOrderConfig.value.map((key: string) => {
+      const keyOne = _config.find((column: TableColumn) => column.key === key);
+      keyOne && result.push(keyOne);
+    });
+    originOrderConfig.value.map((key: string) => {
+      const keyOne = _config.find((column: TableColumn) => column.key === key);
+      keyOne && result.push(keyOne);
+    });
+    return result;
+  });
 
   const getRowColumnKey = (row: Record<string, any>, column: TableColumn, index: number) => {
     return `${index}-${row.id || ''}-${column.key || ''}`;
@@ -493,6 +692,36 @@
     }
     return formatCellValue(value, column);
   };
+
+  const toggleLeft = (column: TableColumn) => {
+    const index = leftOrderConfig.value.indexOf(column.key);
+    if (index === -1) {
+      leftOrderConfig.value.push(column.key);
+      originOrderConfig.value[originOrderConfig.value.indexOf(column.key)] += '-left';
+    } else {
+      leftOrderConfig.value.splice(index, 1);
+      originOrderConfig.value[originOrderConfig.value.indexOf(column.key + '-left')] = column.key;
+    }
+    localStorage.setItem(`leftOrderConfig-${cacheKey}`, JSON.stringify(leftOrderConfig.value));
+    localStorage.setItem(`originOrderConfig-${cacheKey}`, JSON.stringify(originOrderConfig.value));
+  };
+  const toggleFixed = (column: TableColumn) => {
+    const index = fixedColumns.value.indexOf(column.key);
+    if (index === -1) {
+      fixedColumns.value.push(column.key);
+    } else {
+      fixedColumns.value.splice(index, 1);
+    }
+    localStorage.setItem(`fixedColumns-${cacheKey}`, JSON.stringify(fixedColumns.value));
+  };
+  const resetConfig = () => {
+    fixedColumns.value = [];
+    leftOrderConfig.value = [];
+    originOrderConfig.value = [..._preOriginOrderConfig];
+    localStorage.setItem(`fixedColumns-${cacheKey}`, JSON.stringify(fixedColumns.value));
+    localStorage.setItem(`leftOrderConfig-${cacheKey}`, JSON.stringify(leftOrderConfig.value));
+    localStorage.setItem(`originOrderConfig-${cacheKey}`, JSON.stringify(originOrderConfig.value));
+  };
 </script>
 
 <style scoped>
@@ -529,5 +758,28 @@
   .tag-input-wrapper .el-input,
   .tag-input-wrapper .el-button {
     width: 100%;
+  }
+  .el-table .el-table__cell .header-actions {
+    display: none;
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    justify-content: space-between;
+    padding: 4px 8px;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+  .el-table .el-table__cell .header-actions .el-icon {
+    background-color: #909399;
+    border-radius: 50%;
+    padding: 4px;
+    cursor: pointer;
+  }
+  .el-table .el-table__cell .header-actions .el-icon:hover,
+  .el-table .el-table__cell .header-actions .el-icon.active {
+    background-color: #303133;
+  }
+  .el-table .el-table__cell:hover .header-actions {
+    display: flex;
   }
 </style>

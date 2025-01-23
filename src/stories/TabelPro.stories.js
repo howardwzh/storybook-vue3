@@ -1,14 +1,14 @@
-import TabelPro from '../components/TabelPro.vue';
+import TablePro from '../components/TablePro.vue';
 import { ElMessage } from 'element-plus';
 
 export default {
-  title: 'Components/TabelPro',
-  component: TabelPro,
+  title: 'Components/TablePro',
+  component: TablePro,
   tags: ['autodocs'],
 };
 
 const Template = (args) => ({
-  components: { TabelPro },
+  components: { TablePro },
   setup() {
     const handleTagAdd = ({ row, column, value, newValue }) => {
       console.log('添加标签:', { row, column, value, newValue });
@@ -21,7 +21,7 @@ const Template = (args) => ({
     return { args, handleTagAdd, handleTagRemove };
   },
   template: `
-    <TabelPro 
+    <TablePro 
       v-bind="args" 
       @tag-add="handleTagAdd"
       @tag-remove="handleTagRemove"
