@@ -2,7 +2,7 @@
 
 # 设置变量
 PROJECT_NAME="storybook-vue3"
-BUILD_COMMAND="yarn run build-storybook"  # 打包命令
+BUILD_COMMAND="pnpm run build-storybook"  # 打包命令
 SOURCE_DIR="storybook-static"   # 要推送的目录
 TARGET_REPO_URL="git@github.com:howardwzh/howardwzh.github.io.git" # GitHub 目标仓库地址
 TARGET_BRANCH="master"         # 推送目标分支
