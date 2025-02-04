@@ -1,254 +1,89 @@
 <template>
-  <el-table
-    :data="tableData"
-    style="width: 100%"
-    @selection-change="handleSelectionChange"
-    border
-  >
-    <template
-      v-for="column in finalConfig"
-      :key="column.key || column.type"
+  <div class="table-pro-wrapper">
+    <div
+      class="table-order-buttons"
+      :class="{ active: isEditingOrder }"
     >
-      <!-- Selection Column -->
-      <el-table-column
-        v-if="column.type === 'selection'"
-        type="selection"
-        :width="column.width"
-        :min-width="column.minWidth"
-        :align="column.align"
-        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
-      />
-
-      <!-- Index Column -->
-      <el-table-column
-        v-else-if="column.type === 'index'"
-        type="index"
-        :index="indexOffset || 0"
-        :label="column.label"
-        :width="column.width"
-        :min-width="column.minWidth"
-        :align="column.align"
-        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
-      />
-
-      <!-- Buttons Column -->
-      <el-table-column
-        v-else-if="column.buttons"
-        :label="column.label"
-        :width="column.width"
-        :min-width="column.minWidth"
-        :align="column.align"
-        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
+      <el-button
+        size="small"
+        type="primary"
+        @click="confirmOrder"
+        >确定</el-button
       >
-        <template #default="{ row }">
-          <template
-            v-for="(btn, index) in column.buttons"
-            :key="index"
-          >
-            <el-popconfirm
-              v-if="btn.popconfirmTitle"
-              :title="checkFnAndReturnVal(btn.popconfirmTitle, row)"
-              :confirm-button-text="btn.popconfirmBtnText"
-              :cancel-button-text="btn.popcancelBtnText"
-              :icon="btn.popconfirmIcon"
-              :icon-color="btn.popconfirmIconColor"
-              :width="btn.width"
-              @confirm="btn.click(row)"
-            >
-              <template #reference>
-                <el-button
-                  :icon="btn.icon"
-                  :type="checkFnAndReturnVal(btn.type, row)"
-                >
-                  {{ checkFnAndReturnVal(btn.text, row) }}
-                </el-button>
-              </template>
-            </el-popconfirm>
-            <el-button
-              v-else
-              :type="checkFnAndReturnVal(btn.type, row)"
-              :icon="btn.icon"
-              :disabled="btn.disabled?.(row)"
-              @click="btn.click(row)"
-            >
-              {{ checkFnAndReturnVal(btn.text, row) }}
-            </el-button>
-          </template>
-        </template>
-      </el-table-column>
-
-      <!-- Image Column -->
-      <el-table-column
-        v-else-if="column.type === 'image'"
-        :prop="column.key"
-        :label="column.label"
-        :width="column.width"
-        :min-width="column.minWidth"
-        :align="column.align"
-        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
+      <el-button
+        size="small"
+        type="info"
+        @click="toggleEditingOrder(false)"
+        >取消</el-button
       >
-        <template #header>
-          <div :style="`align:${column.align}`">{{ column.label }}</div>
-          <slot
-            v-if="column.headerSlot"
-            :name="column.headerSlot"
-          ></slot>
-          <div
-            v-if="controllable"
-            class="header-actions"
-          >
-            <el-icon
-              :class="{ active: leftOrderConfig.indexOf(column.key) !== -1 }"
-              color="#fff"
-              size="20"
-              @click="toggleLeft(column)"
-            >
-              <DArrowLeft />
-            </el-icon>
-            <el-icon
-              :class="{ active: fixedColumns.indexOf(column.key) !== -1 }"
-              color="#fff"
-              size="20"
-              @click="toggleFixed(column)"
-            >
-              <Lock />
-            </el-icon>
-            <el-icon
-              color="#fff"
-              size="20"
-              @click="resetConfig"
-              ><Refresh
-            /></el-icon>
-          </div>
-        </template>
-        <template #default="{ row }">
-          <el-image
-            v-if="column.key && row[column.key]"
-            :src="row[column.key]"
-            :preview-src-list="column.preview ? [row[column.key]] : []"
-            preview-teleported
-            :style="{
-              width: column.size?.width + 'px',
-              height: column.size?.height + 'px',
-            }"
-          />
-        </template>
-      </el-table-column>
-
-      <!-- Image Column -->
-      <el-table-column
-        v-else-if="column.type === 'link'"
-        :prop="column.key"
-        :label="column.label"
-        :width="column.width"
-        :min-width="column.minWidth"
-        :align="column.align"
-        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
+      <el-button
+        size="small"
+        @click="resetConfig"
+        >恢复默认</el-button
       >
-        <template #header>
-          <div :style="`align:${column.align}`">{{ column.label }}</div>
-          <slot
-            v-if="column.headerSlot"
-            :name="column.headerSlot"
-          ></slot>
-          <div
-            v-if="controllable"
-            class="header-actions"
-          >
-            <el-icon
-              :class="{ active: leftOrderConfig.indexOf(column.key) !== -1 }"
-              color="#fff"
-              size="20"
-              @click="toggleLeft(column)"
-            >
-              <DArrowLeft />
-            </el-icon>
-            <el-icon
-              :class="{ active: fixedColumns.indexOf(column.key) !== -1 }"
-              color="#fff"
-              size="20"
-              @click="toggleFixed(column)"
-            >
-              <Lock />
-            </el-icon>
-            <el-icon
-              color="#fff"
-              size="20"
-              @click="resetConfig"
-              ><Refresh
-            /></el-icon>
-          </div>
-        </template>
-        <template #default="{ row }">
-          <a
-            class="element-to-lj"
-            :href="(column.checkSSL && column.checkSSL(row) ? 'http://' : 'https://') + row[column.key]"
-            target="_blank"
-          >
-            {{ row[column.key] }}
-          </a>
-        </template>
-      </el-table-column>
-
-      <!-- Custom Slot Column -->
-      <el-table-column
-        v-else-if="column.slot"
-        :label="column.label"
-        :width="column.width"
-        :min-width="column.minWidth"
-        :align="column.align"
-        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
+    </div>
+    <el-table
+      :data="tableData"
+      @header-click="toggleEditingOrder(true)"
+      border
+    >
+      <template
+        v-for="column in finalConfig"
+        :key="column.key || column.type"
       >
-        <template #header>
-          <div :style="`align:${column.align}`">{{ column.label }}</div>
-          <slot
-            v-if="column.headerSlot"
-            :name="column.headerSlot"
-          ></slot>
-          <div
-            v-if="controllable"
-            class="header-actions"
-          >
-            <el-icon
-              :class="{ active: leftOrderConfig.indexOf(column.key) !== -1 }"
-              color="#fff"
-              size="20"
-              @click="toggleLeft(column)"
-            >
-              <DArrowLeft />
-            </el-icon>
-            <el-icon
-              :class="{ active: fixedColumns.indexOf(column.key) !== -1 }"
-              color="#fff"
-              size="20"
-              @click="toggleFixed(column)"
-            >
-              <Lock />
-            </el-icon>
-            <el-icon
-              color="#fff"
-              size="20"
-              @click="resetConfig"
-              ><Refresh
-            /></el-icon>
-          </div>
-        </template>
-        <template #default="{ row }">
-          <slot
-            :name="column.slot"
-            :row="row"
-          />
-        </template>
-      </el-table-column>
-
-      <!-- Nested Columns -->
-      <template v-else-if="column.children">
+        <!-- Selection Column -->
         <el-table-column
+          v-if="column.type === 'selection'"
+          :width="column.width || 40"
+          :min-width="column.minWidth"
+          :align="column.align"
+          :fixed="checkIfFixed(column.key)"
+        >
+          <template #header>
+            <el-checkbox
+              v-if="column.label"
+              v-model="isAllSelected"
+              :indeterminate="isIndeterminate"
+              @change="toggleSelectAll"
+            >
+              {{ column.label }}
+            </el-checkbox>
+            <el-checkbox
+              v-else
+              v-model="isAllSelected"
+              :indeterminate="isIndeterminate"
+              @change="toggleSelectAll"
+            />
+          </template>
+          <template #default="{ row }">
+            <el-checkbox
+              :disabled="!checkFnAndReturnVal(column.selectable, row)"
+              :model-value="!!selectedRows.find((s: Record<string, any>) => s[column.uuid] === row[column.uuid])"
+              @change="toggleRowSelection(row, column)"
+            />
+          </template>
+        </el-table-column>
+
+        <!-- Index Column -->
+        <el-table-column
+          v-else-if="column.type === 'index'"
+          type="index"
+          :index="indexOffset || 0"
           :label="column.label"
           :width="column.width"
           :min-width="column.minWidth"
           :align="column.align"
-          :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
+          :fixed="checkIfFixed(column.key)"
+        />
+
+        <!-- Buttons Column -->
+        <el-table-column
+          v-else-if="column.buttons"
+          :label="column.label"
+          :width="column.width"
+          :min-width="column.minWidth"
+          :align="column.align"
+          :fixed="checkIfFixed(column.key)"
         >
           <template #header>
             <div :style="`align:${column.align}`">{{ column.label }}</div>
@@ -257,215 +92,495 @@
               :name="column.headerSlot"
             ></slot>
             <div
-              v-if="controllable"
               class="header-actions"
+              v-if="isEditingOrder"
             >
+              <div
+                v-if="getOrderIndex(column.key) > 0"
+                class="column-order-index"
+                :class="{ 'is-fixed': checkIfFixed(column.key, true) }"
+                @click="toggleLeft(column.key)"
+              >
+                {{ getOrderIndex(column.key) }}
+              </div>
               <el-icon
-                :class="{ active: leftOrderConfig.indexOf(column.key) !== -1 }"
+                v-else
                 color="#fff"
                 size="20"
-                @click="toggleLeft(column)"
+                @click="toggleLeft(column.key)"
               >
                 <DArrowLeft />
               </el-icon>
               <el-icon
-                :class="{ active: fixedColumns.indexOf(column.key) !== -1 }"
+                :class="{ active: checkIfFixed(column.key, true) }"
                 color="#fff"
                 size="20"
-                @click="toggleFixed(column)"
+                @click="toggleFixed(column.key)"
               >
                 <Lock />
               </el-icon>
-              <el-icon
-                color="#fff"
-                size="20"
-                @click="resetConfig"
-                ><Refresh
-              /></el-icon>
             </div>
           </template>
-          <template
-            v-for="child in column.children"
-            :key="child.key"
-          >
-            <el-table-column
-              :prop="child.key"
-              :label="child.label"
-              :width="child.width"
+          <template #default="{ row }">
+            <template
+              v-for="(btn, index) in column.buttons"
+              :key="index"
+            >
+              <el-popconfirm
+                v-if="btn.popconfirmTitle"
+                :title="checkFnAndReturnVal(btn.popconfirmTitle, row)"
+                :confirm-button-text="btn.popconfirmBtnText"
+                :cancel-button-text="btn.popcancelBtnText"
+                :icon="btn.popconfirmIcon"
+                :icon-color="btn.popconfirmIconColor"
+                :width="btn.width"
+                @confirm="btn.click(row)"
+              >
+                <template #reference>
+                  <el-button
+                    v-if="btn.text"
+                    :type="checkFnAndReturnVal(btn.type, row)"
+                    :icon="checkFnAndReturnVal(btn.icon, row)"
+                    :disabled="btn.disabled?.(row)"
+                    :size="btn.size"
+                    :round="btn.round"
+                  >
+                    {{ checkFnAndReturnVal(btn.text, row) }}
+                  </el-button>
+                  <el-button
+                    v-else
+                    :type="checkFnAndReturnVal(btn.type, row)"
+                    :icon="checkFnAndReturnVal(btn.icon, row)"
+                    :disabled="btn.disabled?.(row)"
+                    :size="btn.size"
+                    :circle="btn.circle"
+                  />
+                </template>
+              </el-popconfirm>
+              <el-button
+                v-else-if="btn.text"
+                :type="checkFnAndReturnVal(btn.type, row)"
+                :icon="checkFnAndReturnVal(btn.icon, row)"
+                :disabled="btn.disabled?.(row)"
+                :size="btn.size"
+                :round="btn.round"
+                @click="btn.click(row)"
+              >
+                {{ checkFnAndReturnVal(btn.text, row) }}
+              </el-button>
+              <el-button
+                v-else
+                :type="checkFnAndReturnVal(btn.type, row)"
+                :icon="checkFnAndReturnVal(btn.icon, row)"
+                :disabled="btn.disabled?.(row)"
+                :size="btn.size"
+                :circle="btn.circle"
+                @click="btn.click(row)"
+              />
+            </template>
+          </template>
+        </el-table-column>
+
+        <!-- Image Column -->
+        <el-table-column
+          v-else-if="column.type === 'image'"
+          :prop="column.key"
+          :label="column.label"
+          :width="column.width"
+          :min-width="column.minWidth"
+          :align="column.align"
+          :fixed="checkIfFixed(column.key)"
+        >
+          <template #header>
+            <div :style="`align:${column.align}`">{{ column.label }}</div>
+            <slot
+              v-if="column.headerSlot"
+              :name="column.headerSlot"
+            ></slot>
+            <div
+              class="header-actions"
+              v-if="isEditingOrder"
+            >
+              <div
+                v-if="getOrderIndex(column.key) > 0"
+                class="column-order-index"
+                :class="{ 'is-fixed': checkIfFixed(column.key, true) }"
+                @click="toggleLeft(column.key)"
+              >
+                {{ getOrderIndex(column.key) }}
+              </div>
+              <el-icon
+                v-else
+                color="#fff"
+                size="20"
+                @click="toggleLeft(column.key)"
+              >
+                <DArrowLeft />
+              </el-icon>
+              <el-icon
+                :class="{ active: checkIfFixed(column.key, true) }"
+                color="#fff"
+                size="20"
+                @click="toggleFixed(column.key)"
+              >
+                <Lock />
+              </el-icon>
+            </div>
+          </template>
+          <template #default="{ row }">
+            <el-image
+              v-if="column.key && row[column.key]"
+              :src="row[column.key]"
+              :preview-src-list="column.preview ? [row[column.key]] : []"
+              preview-teleported
+              :style="{
+                width: column.size?.width + 'px',
+                height: column.size?.height + 'px',
+              }"
             />
           </template>
         </el-table-column>
-      </template>
 
-      <!-- Normal Column -->
-      <el-table-column
-        v-else
-        :prop="column.key"
-        :label="column.label"
-        :width="column.width"
-        :min-width="column.minWidth"
-        :align="column.align"
-        :sortable="column.sortable"
-        :filters="column.filters"
-        :filter-method="column.filterMethod"
-        :fixed="column.fixed || fixedColumns.indexOf(column.key) !== -1"
-        v-show="!column.hidden"
-      >
-        <template #header>
-          <div :style="`align:${column.align}`">{{ column.label }}</div>
-          <slot
-            v-if="column.headerSlot"
-            :name="column.headerSlot"
-          ></slot>
-          <div
-            v-if="controllable"
-            class="header-actions"
-          >
-            <el-icon
-              :class="{ active: leftOrderConfig.indexOf(column.key) !== -1 }"
-              color="#fff"
-              size="20"
-              @click="toggleLeft(column)"
-            >
-              <DArrowLeft />
-            </el-icon>
-            <el-icon
-              :class="{ active: fixedColumns.indexOf(column.key) !== -1 }"
-              color="#fff"
-              size="20"
-              @click="toggleFixed(column)"
-            >
-              <Lock />
-            </el-icon>
-            <el-icon
-              color="#fff"
-              size="20"
-              @click="resetConfig"
-              ><Refresh
-            /></el-icon>
-          </div>
-        </template>
-        <template
-          #default="{ row, $index }"
-          v-if="column.key"
+        <!-- Link Column -->
+        <el-table-column
+          v-else-if="column.type === 'link'"
+          :prop="column.key"
+          :label="column.label"
+          :width="column.width"
+          :min-width="column.minWidth"
+          :align="column.align"
+          :fixed="checkIfFixed(column.key)"
         >
-          <template v-if="column.switch">
-            <el-switch
-              v-model="row[column.key]"
-              :style="{
-                '--el-switch-on-color': column.switch?.onColor || '#13ce66',
-                '--el-switch-off-color': column.switch?.offColor || '#ff4949',
-              }"
-              :active-value="column.switch?.activeValue"
-              :inactive-value="column.switch?.inactiveValue"
-              :active-text="column.switch?.activeText"
-              :inactive-text="column.switch?.inactiveText"
-              inline-prompt
-              :loading="row.loading"
-              @change="
-                (val) =>
-                  column.switch?.change(
-                    val,
-                    val === column.switch?.activeValue ? column.switch?.inactiveValue : column.switch?.activeValue,
-                    row
-                  )
-              "
-            />
-          </template>
-          <div
-            class="input-wrapper"
-            v-else-if="column.input"
-          >
-            <el-input
-              v-model="row[column.key]"
-              :type="column.input?.type || 'text'"
-              :placeholder="column.input?.placeholder || '请输入'"
-              :maxlength="column.input?.maxlength"
-              :show-word-limit="!!column.input?.maxlength"
-              :disabled="column.input?.disabled?.(row)"
-              @focus="column.key && !row[`${column.key}-old`] && (row[`${column.key}-old`] = row[column.key])"
-              @blur="
-                column.key &&
-                  row[`${column.key}-old`].toString() === row[column.key] &&
-                  (row[`${column.key}-old`] = undefined)
-              "
-            />
-            <template v-if="row[`${column.key}-old`] !== undefined && row[`${column.key}-old`] !== row[column.key]">
-              <el-button
-                type="primary"
-                size="small"
-                @click="column.input?.change(row[column.key], row[`${column.key}-old`], row)"
+          <template #header>
+            <div :style="`align:${column.align}`">{{ column.label }}</div>
+            <slot
+              v-if="column.headerSlot"
+              :name="column.headerSlot"
+            ></slot>
+            <div
+              class="header-actions"
+              v-if="isEditingOrder"
+            >
+              <div
+                v-if="getOrderIndex(column.key) > 0"
+                class="column-order-index"
+                :class="{ 'is-fixed': checkIfFixed(column.key, true) }"
+                @click="toggleLeft(column.key)"
               >
-                确认
-              </el-button>
-              <el-button
-                size="small"
-                @click="row[column.key] = row[`${column.key}-old`]"
-                >取消</el-button
+                {{ getOrderIndex(column.key) }}
+              </div>
+              <el-icon
+                v-else
+                color="#fff"
+                size="20"
+                @click="toggleLeft(column.key)"
               >
-            </template>
-          </div>
-          <template v-else-if="column.tag">
-            <div class="tags-wrapper">
-              <template v-if="Array.isArray(row[column.key])">
-                <template
-                  v-for="(value, index) in row[column.key]"
-                  :key="index"
-                >
-                  <el-tag
-                    :type="checkFnAndReturnVal(column.tag.type, row, value)"
-                    :effect="column.tag.effect || 'dark'"
-                    :closable="column.tag.closable"
-                    @close="handleTagClose(row, column, index)"
-                  >
-                    {{ formatTagValue(value, column) }}
-                  </el-tag>
-                </template>
-                <div
-                  v-if="column.tag.addable"
-                  class="tag-input-wrapper"
-                >
-                  <el-input
-                    v-if="tempBooleans[getRowColumnKey(row, column, $index)]"
-                    :id="getRowColumnKey(row, column, $index)"
-                    v-model="tagInputValues[getRowColumnKey(row, column, $index)]"
-                    :placeholder="column.tag.addPlaceholder || '请输入'"
-                    size="small"
-                    @keyup.enter="handleTagAdd(row, column, $index)"
-                    @blur="handleTagInputBlur(row, column, $index)"
-                  />
-                  <el-button
-                    v-else
-                    size="small"
-                    @click="(event: MouseEvent) => showTagInput(row, column, $index)"
-                  >
-                    + 新标签
-                  </el-button>
-                </div>
-              </template>
-              <template v-else>
-                <el-tag
-                  :type="checkFnAndReturnVal(column.tag.type, row, row[column.key])"
-                  :effect="column.tag.effect || 'dark'"
-                >
-                  {{ formatCellValue(row[column.key], column) }}
-                </el-tag>
-              </template>
+                <DArrowLeft />
+              </el-icon>
+              <el-icon
+                :class="{ active: checkIfFixed(column.key, true) }"
+                color="#fff"
+                size="20"
+                @click="toggleFixed(column.key)"
+              >
+                <Lock />
+              </el-icon>
             </div>
           </template>
-          <template v-else>
-            <span :style="column.cellStyle?.(row, column)">
-              {{ column.key ? formatCellValue(row[column.key], column) : '' }}
-            </span>
+          <template #default="{ row }">
+            <a
+              class="element-to-lj"
+              :href="(column.checkSSL && column.checkSSL(row) ? 'http://' : 'https://') + row[column.key]"
+              target="_blank"
+            >
+              {{ row[column.key] }}
+            </a>
           </template>
+        </el-table-column>
+
+        <!-- Custom Slot Column -->
+        <el-table-column
+          v-else-if="column.slot"
+          :label="column.label"
+          :width="column.width"
+          :min-width="column.minWidth"
+          :align="column.align"
+          :fixed="checkIfFixed(column.key)"
+        >
+          <template #header>
+            <div :style="`align:${column.align}`">{{ column.label }}</div>
+            <slot
+              v-if="column.headerSlot"
+              :name="column.headerSlot"
+            ></slot>
+            <div
+              class="header-actions"
+              v-if="isEditingOrder"
+            >
+              <div
+                v-if="getOrderIndex(column.key) > 0"
+                class="column-order-index"
+                :class="{ 'is-fixed': checkIfFixed(column.key, true) }"
+                @click="toggleLeft(column.key)"
+              >
+                {{ getOrderIndex(column.key) }}
+              </div>
+              <el-icon
+                v-else
+                color="#fff"
+                size="20"
+                @click="toggleLeft(column.key)"
+              >
+                <DArrowLeft />
+              </el-icon>
+              <el-icon
+                :class="{ active: checkIfFixed(column.key, true) }"
+                color="#fff"
+                size="20"
+                @click="toggleFixed(column.key)"
+              >
+                <Lock />
+              </el-icon>
+            </div>
+          </template>
+          <template #default="{ row }">
+            <slot
+              :name="column.slot"
+              :row="row"
+            />
+          </template>
+        </el-table-column>
+
+        <!-- Nested Columns -->
+        <template v-else-if="column.children">
+          <el-table-column
+            :label="column.label"
+            :width="column.width"
+            :min-width="column.minWidth"
+            :align="column.align"
+            :fixed="checkIfFixed(column.key)"
+          >
+            <template #header>
+              <div :style="`align:${column.align}`">{{ column.label }}</div>
+              <slot
+                v-if="column.headerSlot"
+                :name="column.headerSlot"
+              ></slot>
+              <div
+                class="header-actions"
+                v-if="isEditingOrder"
+              >
+                <div
+                  v-if="getOrderIndex(column.key) > 0"
+                  class="column-order-index"
+                  :class="{ 'is-fixed': checkIfFixed(column.key, true) }"
+                  @click="toggleLeft(column.key)"
+                >
+                  {{ getOrderIndex(column.key) }}
+                </div>
+                <el-icon
+                  v-else
+                  color="#fff"
+                  size="20"
+                  @click="toggleLeft(column.key)"
+                >
+                  <DArrowLeft />
+                </el-icon>
+                <el-icon
+                  :class="{ active: checkIfFixed(column.key, true) }"
+                  color="#fff"
+                  size="20"
+                  @click="toggleFixed(column.key)"
+                >
+                  <Lock />
+                </el-icon>
+              </div>
+            </template>
+            <template
+              v-for="child in column.children"
+              :key="child.key"
+            >
+              <el-table-column
+                :prop="child.key"
+                :label="child.label"
+                :width="child.width"
+              />
+            </template>
+          </el-table-column>
         </template>
-      </el-table-column>
-    </template>
-  </el-table>
+
+        <!-- Normal Column -->
+        <el-table-column
+          v-else
+          :prop="column.key"
+          :label="column.label"
+          :width="column.width"
+          :min-width="column.minWidth"
+          :align="column.align"
+          :sortable="column.sortable"
+          :filters="column.filters"
+          :filter-method="column.filterMethod"
+          :fixed="checkIfFixed(column.key)"
+          v-show="!column.hidden"
+        >
+          <template #header>
+            <div :style="`align:${column.align}`">{{ column.label }}</div>
+            <slot
+              v-if="column.headerSlot"
+              :name="column.headerSlot"
+            ></slot>
+            <div
+              class="header-actions"
+              v-if="isEditingOrder"
+            >
+              <div
+                v-if="getOrderIndex(column.key) > 0"
+                class="column-order-index"
+                :class="{ 'is-fixed': checkIfFixed(column.key, true) }"
+                @click="toggleLeft(column.key)"
+              >
+                {{ getOrderIndex(column.key) }}
+              </div>
+              <el-icon
+                v-else
+                color="#fff"
+                size="20"
+                @click="toggleLeft(column.key)"
+              >
+                <DArrowLeft />
+              </el-icon>
+              <el-icon
+                :class="{ active: checkIfFixed(column.key, true) }"
+                color="#fff"
+                size="20"
+                @click="toggleFixed(column.key)"
+              >
+                <Lock />
+              </el-icon>
+            </div>
+          </template>
+          <template
+            #default="{ row, $index }"
+            v-if="column.key"
+          >
+            <template v-if="column.switch">
+              <el-switch
+                v-model="row[column.key]"
+                :style="{
+                  '--el-switch-on-color': column.switch?.onColor || '#13ce66',
+                  '--el-switch-off-color': column.switch?.offColor || '#ff4949',
+                }"
+                :active-value="column.switch?.activeValue"
+                :inactive-value="column.switch?.inactiveValue"
+                :active-text="column.switch?.activeText"
+                :inactive-text="column.switch?.inactiveText"
+                inline-prompt
+                :loading="row.loading"
+                @change="
+                  (val) =>
+                    column.switch?.change(
+                      val,
+                      val === column.switch?.activeValue ? column.switch?.inactiveValue : column.switch?.activeValue,
+                      row
+                    )
+                "
+              />
+            </template>
+            <div
+              class="input-wrapper"
+              v-else-if="column.input"
+            >
+              <el-input
+                v-model="row[column.key]"
+                :type="column.input?.type || 'text'"
+                :placeholder="column.input?.placeholder || '请输入'"
+                :maxlength="column.input?.maxlength"
+                :show-word-limit="!!column.input?.maxlength"
+                :disabled="column.input?.disabled?.(row)"
+                @focus="column.key && !row[`${column.key}-old`] && (row[`${column.key}-old`] = row[column.key])"
+                @blur="
+                  column.key &&
+                    row[`${column.key}-old`].toString() === row[column.key] &&
+                    (row[`${column.key}-old`] = undefined)
+                "
+              />
+              <template v-if="row[`${column.key}-old`] !== undefined && row[`${column.key}-old`] !== row[column.key]">
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="column.input?.change(row[column.key], row[`${column.key}-old`], row)"
+                >
+                  确认
+                </el-button>
+                <el-button
+                  size="small"
+                  @click="row[column.key] = row[`${column.key}-old`]"
+                  >取消</el-button
+                >
+              </template>
+            </div>
+            <template v-else-if="column.tag">
+              <div class="tags-wrapper">
+                <template v-if="Array.isArray(row[column.key])">
+                  <template
+                    v-for="(value, index) in row[column.key]"
+                    :key="index"
+                  >
+                    <el-tag
+                      :type="checkFnAndReturnVal(column.tag.type, row, value)"
+                      :effect="column.tag.effect || 'dark'"
+                      :closable="column.tag.closable"
+                      @close="handleTagClose(row, column, index)"
+                    >
+                      {{ formatTagValue(value, column) }}
+                    </el-tag>
+                  </template>
+                  <div
+                    v-if="column.tag.addable"
+                    class="tag-input-wrapper"
+                  >
+                    <el-input
+                      v-if="tempBooleans[getRowColumnKey(row, column, $index)]"
+                      :id="getRowColumnKey(row, column, $index)"
+                      v-model="tagInputValues[getRowColumnKey(row, column, $index)]"
+                      :placeholder="column.tag.addPlaceholder || '请输入'"
+                      size="small"
+                      @keyup.enter="handleTagAdd(row, column, $index)"
+                      @blur="handleTagInputBlur(row, column, $index)"
+                    />
+                    <el-button
+                      v-else
+                      size="small"
+                      @click="(event: MouseEvent) => showTagInput(row, column, $index)"
+                    >
+                      + 新标签
+                    </el-button>
+                  </div>
+                </template>
+                <template v-else>
+                  <el-tag
+                    :type="checkFnAndReturnVal(column.tag.type, row, row[column.key])"
+                    :effect="column.tag.effect || 'dark'"
+                  >
+                    {{ formatTagValue(row[column.key], column) }}
+                  </el-tag>
+                </template>
+              </div>
+            </template>
+            <template v-else>
+              <span :style="column.cellStyle?.(row, column)">
+                {{ column.key ? formatCellValue(row[column.key], column, row) : '' }}
+              </span>
+            </template>
+          </template>
+        </el-table-column>
+      </template>
+    </el-table>
+  </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, nextTick, computed } from 'vue';
+  import { ref, nextTick, computed, toRef } from 'vue';
   import {
     ElTable,
     ElTableColumn,
@@ -481,10 +596,10 @@
   import { DArrowLeft, Lock, Refresh } from '@element-plus/icons-vue';
 
   type ButtonType = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'text' | 'default';
-
   type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger';
 
   export interface TableColumn {
+    uuid?: string;
     type?: 'selection' | 'index' | 'image' | 'link';
     key?: string;
     label?: string;
@@ -493,6 +608,7 @@
     align?: 'left' | 'center' | 'right';
     hidden?: boolean;
     sortable?: boolean;
+    selectable?: boolean | ((row: Record<string, any>) => boolean);
     filters?: { text: string; value: any }[];
     dictionary?: Record<string | number, string>;
     defaultValue?: string;
@@ -525,6 +641,9 @@
       popconfirmIcon?: any;
       popconfirmIconColor?: string;
       width?: string;
+      size?: 'large' | 'default' | 'small';
+      round?: boolean;
+      circle?: boolean;
     }[];
     slot?: string;
     size?: { width: number; height: number };
@@ -537,6 +656,7 @@
       closable?: boolean;
       addable?: boolean;
       addPlaceholder?: string;
+      label?: string;
       beforeAdd?: (value: string, row: Record<string, any>) => boolean | Promise<boolean>;
       beforeRemove?: (index: number, value: any, row: Record<string, any>) => boolean | Promise<boolean>;
       onAdd?: (value: string, row: Record<string, any>) => void;
@@ -544,7 +664,7 @@
     };
     filterMethod?: (value: any, row: Record<string, any>) => boolean;
     colspan?: (row: Record<string, any>, column: TableColumn) => number;
-    formatter?: (value: any) => string;
+    formatter?: (value: any, row: Record<string, any>) => string;
     cellStyle?: (row: Record<string, any>, column: TableColumn) => Record<string, string>;
     checkSSL?: (row: Record<string, any>) => boolean;
   }
@@ -554,16 +674,19 @@
     config: TableColumn[];
     indexOffset?: number;
     controllable?: boolean;
+    selectedRows?: Record<string, any>[];
   }
 
   const props = withDefaults(defineProps<Props>(), { controllable: true });
   const emit = defineEmits(['selection-change']);
 
   // Store input values for tag adding
-  const _preOriginOrderConfig: string[] = [];
+  const _preOriginOrderConfig = [];
+  const _preFixedColumns = [];
   const _config = props.config.map((column: TableColumn, index: number) => {
     const key = column.key || `column-${index}`;
     _preOriginOrderConfig.push(key);
+    column.fixed && _preFixedColumns.push(key);
     return {
       ...column,
       key,
@@ -572,25 +695,41 @@
   const cacheKey = JSON.stringify(_preOriginOrderConfig);
   const cacheFixedColumns = JSON.parse(localStorage.getItem(`fixedColumns-${cacheKey}`) || 'null');
   const cacheLeftOrderConfig = JSON.parse(localStorage.getItem(`leftOrderConfig-${cacheKey}`) || 'null');
-  const cacheOriginOrderConfig = JSON.parse(localStorage.getItem(`originOrderConfig-${cacheKey}`) || 'null');
   const tagInputValues = ref<Record<string, string>>({});
   const tempBooleans = ref<Record<string, boolean>>({});
-  const fixedColumns = ref<string[]>(cacheFixedColumns || []);
+  const tempFixedColumns = ref<string[]>([]);
+  const fixedColumns = ref<string[]>(cacheFixedColumns || _preFixedColumns);
+  const tempLeftOrderConfig = ref<string[]>([]);
   const leftOrderConfig = ref<string[]>(cacheLeftOrderConfig || []);
-  const originOrderConfig = ref<string[]>(cacheOriginOrderConfig || [..._preOriginOrderConfig]);
+  const originOrderConfig = ref<string[]>(_preOriginOrderConfig);
+  const isEditingOrder = ref(false);
+  const selectedRows = toRef(props.selectedRows || []);
 
   const finalConfig = computed((): TableColumn[] => {
-    const result: TableColumn[] = [];
+    const result = [];
+    fixedColumns.value.map((key: string) => {
+      result.push(_config.find((column: TableColumn) => column.key === key));
+    });
     leftOrderConfig.value.map((key: string) => {
-      const keyOne = _config.find((column: TableColumn) => column.key === key);
-      keyOne && result.push(keyOne);
+      if (checkIfFixed(key)) return;
+      result.push(_config.find((column: TableColumn) => column.key === key));
     });
     originOrderConfig.value.map((key: string) => {
+      if (checkIfFixed(key) || leftOrderConfig.value.indexOf(key) !== -1) return;
       const keyOne = _config.find((column: TableColumn) => column.key === key);
       keyOne && result.push(keyOne);
     });
     return result;
   });
+
+  const toggleEditingOrder = (open?: boolean) => {
+    if (!props.controllable || isEditingOrder.value === open) return;
+    isEditingOrder.value = open !== undefined ? open : !isEditingOrder.value;
+    if (isEditingOrder.value) {
+      tempFixedColumns.value = [...fixedColumns.value];
+      tempLeftOrderConfig.value = [...leftOrderConfig.value];
+    }
+  };
 
   const getRowColumnKey = (row: Record<string, any>, column: TableColumn, index: number) => {
     return `${index}-${row.id || ''}-${column.key || ''}`;
@@ -601,6 +740,37 @@
     row: Record<string, any>,
     argsValue?: any
   ) => (typeof val === 'function' ? val(row, argsValue) : val);
+
+  // 计算是否所有行都被选中
+  const isAllSelected = computed(
+    () => props.tableData.length > 0 && selectedRows.value.length === props.tableData.length
+  );
+
+  // 计算是否部分选中（半选状态）
+  const isIndeterminate = computed(
+    () => selectedRows.value.length > 0 && selectedRows.value.length < props.tableData.length
+  );
+
+  // 处理单行选中
+  const toggleRowSelection = (row: Record<string, any>, column: TableColumn) => {
+    const index = selectedRows.value.findIndex((item) => item[column.uuid] === row[column.uuid]);
+    if (index > -1) {
+      selectedRows.value.splice(index, 1);
+    } else {
+      selectedRows.value.push(row);
+    }
+    handleSelectionChange(selectedRows.value);
+  };
+
+  // 切换全选
+  const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+      selectedRows.value = [];
+    } else {
+      selectedRows.value = [...props.tableData];
+    }
+    handleSelectionChange(selectedRows.value);
+  };
 
   const handleSelectionChange = (selection: Record<string, any>[]) => {
     emit('selection-change', selection);
@@ -669,7 +839,11 @@
     tagInputValues.value[inputKey] = '';
   };
 
-  const formatCellValue = (value: any, column: TableColumn) => {
+  const formatCellValue = (value: any, column: TableColumn, row?: Record<string, any>) => {
+    if (column.formatter) {
+      return column.formatter(value, row);
+    }
+
     if (value === undefined || value === null || value === '') {
       return column.defaultValue || '';
     }
@@ -678,55 +852,82 @@
       return column.dictionary[value];
     }
 
-    if (column.formatter) {
-      return column.formatter(value);
-    }
-
     return value;
   };
 
   const formatTagValue = (value: any, column: TableColumn) => {
     if (typeof value === 'object' && value !== null) {
-      // If the value is an object, try to get a display property
-      return value.label || value.name || value.text || value.value || value.toString();
+      return value[column.tag.label];
     }
     return formatCellValue(value, column);
   };
 
-  const toggleLeft = (column: TableColumn) => {
-    const index = leftOrderConfig.value.indexOf(column.key);
+  const toggleLeft = (key: string = '') => {
+    if (checkIfFixed(key, true)) return;
+    const index = tempLeftOrderConfig.value.indexOf(key);
     if (index === -1) {
-      leftOrderConfig.value.push(column.key);
-      originOrderConfig.value[originOrderConfig.value.indexOf(column.key)] += '-left';
+      tempLeftOrderConfig.value.push(key);
     } else {
-      leftOrderConfig.value.splice(index, 1);
-      originOrderConfig.value[originOrderConfig.value.indexOf(column.key + '-left')] = column.key;
+      tempLeftOrderConfig.value.splice(index, 1);
     }
-    localStorage.setItem(`leftOrderConfig-${cacheKey}`, JSON.stringify(leftOrderConfig.value));
-    localStorage.setItem(`originOrderConfig-${cacheKey}`, JSON.stringify(originOrderConfig.value));
   };
-  const toggleFixed = (column: TableColumn) => {
-    const index = fixedColumns.value.indexOf(column.key);
+  const toggleFixed = (key: string = '') => {
+    const index = tempFixedColumns.value.indexOf(key);
     if (index === -1) {
-      fixedColumns.value.push(column.key);
+      tempFixedColumns.value.push(key);
     } else {
-      fixedColumns.value.splice(index, 1);
+      tempFixedColumns.value.splice(index, 1);
     }
-    localStorage.setItem(`fixedColumns-${cacheKey}`, JSON.stringify(fixedColumns.value));
+  };
+  const getOrderIndex = (key: string = '') => {
+    let index = tempFixedColumns.value.indexOf(key);
+    if (index === -1) {
+      index = tempLeftOrderConfig.value.indexOf(key);
+      index = index !== -1 ? index + tempFixedColumns.value.length : index;
+    }
+    return index + 1;
+  };
+  const checkIfFixed = (key: string = '', isTemp?: boolean) => {
+    return (isTemp ? tempFixedColumns.value : fixedColumns.value).indexOf(key) !== -1;
   };
   const resetConfig = () => {
-    fixedColumns.value = [];
+    fixedColumns.value = _preFixedColumns;
     leftOrderConfig.value = [];
-    originOrderConfig.value = [..._preOriginOrderConfig];
     localStorage.setItem(`fixedColumns-${cacheKey}`, JSON.stringify(fixedColumns.value));
     localStorage.setItem(`leftOrderConfig-${cacheKey}`, JSON.stringify(leftOrderConfig.value));
-    localStorage.setItem(`originOrderConfig-${cacheKey}`, JSON.stringify(originOrderConfig.value));
+    toggleEditingOrder(false);
+  };
+  const confirmOrder = () => {
+    fixedColumns.value = [...tempFixedColumns.value];
+    leftOrderConfig.value = [...tempLeftOrderConfig.value];
+    localStorage.setItem(`fixedColumns-${cacheKey}`, JSON.stringify(fixedColumns.value));
+    localStorage.setItem(`leftOrderConfig-${cacheKey}`, JSON.stringify(leftOrderConfig.value));
+    toggleEditingOrder(false);
   };
 </script>
 
 <style scoped>
+  .table-pro-wrapper {
+    position: relative;
+    height: fit-content;
+    overflow: hidden;
+  }
+  .table-order-buttons {
+    display: none;
+  }
+  .table-order-buttons.active {
+    position: absolute;
+    display: flex;
+    background-color: rgba(0, 0, 0, 0.3);
+    gap: 8px;
+    bottom: 0;
+    right: 0;
+    z-index: 10;
+    padding: 4px 8px;
+  }
   .el-table {
     width: 100%;
+    height: 100%;
     font-size: 14px;
   }
   .input-wrapper {
@@ -760,14 +961,16 @@
     width: 100%;
   }
   .el-table .el-table__cell .header-actions {
-    display: none;
     position: absolute;
+    display: flex;
     width: 100%;
+    height: 100%;
     top: 0;
     left: 0;
     justify-content: space-between;
-    padding: 4px 8px;
-    background-color: rgba(0, 0, 0, 0.3);
+    align-items: center;
+    padding: 0 8px;
+    background-color: rgba(0, 0, 0, 0.2);
   }
   .el-table .el-table__cell .header-actions .el-icon {
     background-color: #909399;
@@ -775,11 +978,39 @@
     padding: 4px;
     cursor: pointer;
   }
-  .el-table .el-table__cell .header-actions .el-icon:hover,
+
   .el-table .el-table__cell .header-actions .el-icon.active {
     background-color: #303133;
   }
-  .el-table .el-table__cell:hover .header-actions {
+  .el-table .el-table__cell .header-actions .el-icon:hover,
+  .el-table .el-table__cell .header-actions .el-icon.active:hover {
+    background-color: #4f5562;
+  }
+  .el-table .el-table__cell .header-actions .column-order-index {
+    background-color: #303133;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
     display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: #fff;
+    position: relative;
+  }
+  .el-table .el-table__cell .header-actions .column-order-index.is-fixed {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .el-table .el-table__cell .header-actions .column-order-index:not(.is-fixed):hover::before {
+    content: 'X';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    line-height: 20px;
+    text-align: center;
+    border-radius: 50%;
+    font-size: 12px;
+    background-color: #4f5562;
   }
 </style>

@@ -400,6 +400,9 @@
       isFormValid.value = false; // 如果验证失败，更新校验结果为 false
     }
   };
+  const validateField = async (key: string) => {
+    key && ruleFormRef.value?.validateField(key);
+  };
 
   const resetFields = async () => {
     try {
@@ -407,6 +410,10 @@
       isFormValid.value = false;
     } catch (error) {}
   };
+
+  defineExpose({
+    validateField,
+  });
 </script>
 
 <style scoped lang="less">

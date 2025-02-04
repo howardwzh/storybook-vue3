@@ -1,4 +1,4 @@
-import TablePro from '../components/TablePro.vue';
+import TablePro, { type TableColumn } from '../components/TablePro.vue';
 import { ElMessage } from 'element-plus';
 
 export default {
@@ -114,7 +114,7 @@ Basic.args = {
       width: 300,
       tag: {
         type: (row, value) => {
-          const typeMap = {
+          const typeMap: Record<string, any> = {
             前端: 'success',
             后端: 'info',
             Vue: 'success',
@@ -149,6 +149,7 @@ Basic.args = {
       label: '角色',
       width: 200,
       tag: {
+        label: 'name',
         type: (row, value) => value.type,
         effect: 'dark',
         closable: true,
@@ -167,12 +168,15 @@ Basic.args = {
       label: '技能',
       width: 300,
       tag: {
-        type: (row, value) =>
-          ({
+        label: 'label',
+        type: (row, value) => {
+          const dictionary: Record<string, any> = {
             expert: 'success',
             intermediate: 'warning',
             beginner: 'info',
-          }[value.level]),
+          };
+          return dictionary[value.level];
+        },
         effect: 'plain',
         closable: true,
         onRemove: (index, value, row) => {
@@ -256,6 +260,6 @@ Basic.args = {
         },
       ],
     },
-  ],
+  ] as TableColumn[],
   indexOffset: 10,
 };

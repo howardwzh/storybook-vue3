@@ -1,4 +1,4 @@
-import { type ItemInterface } from '../components/formPro.vue';
+import { type ItemInterface } from '../components/FormPro.vue';
 
 export const KEY_EXTRA_SUFFIX = 'KEY_EXTRA_SUFFIX';
 
