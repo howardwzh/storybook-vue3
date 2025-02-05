@@ -225,10 +225,10 @@
           <template #default="{ row }">
             <a
               class="element-to-lj"
-              :href="(column.checkSSL && column.checkSSL(row) ? 'http://' : 'https://') + row[column.key]"
+              :href="(column.checkSSL && column.checkSSL(row) ? 'http://' : 'https://') + row[column.key ?? '']"
               target="_blank"
             >
-              {{ row[column.key] }}
+              {{ row[column.key ?? ''] }}
             </a>
           </template>
         </el-table-column>
@@ -536,7 +536,7 @@ export interface TableColumn {
   }
   filterMethod?: (value: any, row: Record<string, any>) => boolean
   colspan?: (row: Record<string, any>, column: TableColumn) => number
-  formatter?: (value: any, row: Record<string, any>) => string
+  formatter?: (value: any, row?: Record<string, any>) => string
   cellStyle?: (row: Record<string, any>, column: TableColumn) => Record<string, string>
   checkSSL?: (row: Record<string, any>) => boolean
 }
@@ -553,9 +553,9 @@ const props = withDefaults(defineProps<Props>(), { controllable: true })
 const emit = defineEmits(['selection-change'])
 
 // Store input values for tag adding
-const _preOriginOrderConfig = []
-const _preFixedColumns = []
-const _config = props.config.map((column: TableColumn, index: number) => {
+const _preOriginOrderConfig: string[] = []
+const _preFixedColumns: string[] = []
+const _config: TableColumn[] = props.config.map((column: TableColumn, index: number) => {
   const key = column.key || `column-${index}`
   _preOriginOrderConfig.push(key)
   column.fixed && _preFixedColumns.push(key)
@@ -578,13 +578,20 @@ const isEditingOrder = ref(false)
 const selectedRows = toRef(props.selectedRows || [])
 
 const finalConfig = computed((): TableColumn[] => {
-  const result = []
+  const result: TableColumn[] = []
   fixedColumns.value.map((key: string) => {
-    result.push(_config.find((column: TableColumn) => column.key === key))
+    const keyOne = _config.find((column: TableColumn) => column.key === key)
+    keyOne && result.push(keyOne)
+  })
+  const checkIfFixed = (key: string) => fixedColumns.value.indexOf(key) !== -1
+  tempFixedColumns.value.map((key: string) => {
+    if (checkIfFixed(key)) return
+    result.push()
   })
   leftOrderConfig.value.map((key: string) => {
     if (checkIfFixed(key)) return
-    result.push(_config.find((column: TableColumn) => column.key === key))
+    const keyOne = _config.find((column: TableColumn) => column.key === key)
+    keyOne && result.push(keyOne)
   })
   originOrderConfig.value.map((key: string) => {
     if (checkIfFixed(key) || leftOrderConfig.value.indexOf(key) !== -1) return
@@ -623,7 +630,7 @@ const isIndeterminate = computed(
 
 // 处理单行选中
 const toggleRowSelection = (row: Record<string, any>, column: TableColumn) => {
-  const index = selectedRows.value.findIndex((item) => item[column.uuid] === row[column.uuid])
+  const index = selectedRows.value.findIndex((item) => item[column.uuid ?? ''] === row[column.uuid ?? ''])
   if (index > -1) {
     selectedRows.value.splice(index, 1)
   } else {
@@ -727,7 +734,7 @@ const formatCellValue = (value: any, column: TableColumn, row?: Record<string, a
 
 const formatTagValue = (value: any, column: TableColumn) => {
   if (typeof value === 'object' && value !== null) {
-    return value[column.tag.label]
+    return value[column.tag?.label ?? '']
   }
   return formatCellValue(value, column)
 }
