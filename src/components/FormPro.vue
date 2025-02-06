@@ -32,7 +32,7 @@
           >
             <!-- Iterate through options to render each as an el-option -->
             <el-option
-              v-for="option in item.options"
+              v-for="option in checkFnAndReturnVal(item.options, formData)"
               :key="option.value"
               :label="item.optionsLabelValue ? option[item.optionsLabelValue[0]] : option.label"
               :value="item.optionsLabelValue ? option[item.optionsLabelValue[1]] : option.value"
@@ -42,7 +42,7 @@
           <!-- Render el-checkbox-group for multiple selection -->
           <el-checkbox-group v-else-if="item.type === 'checkbox-group'" v-model="formData[getItemKey(item)]">
             <el-checkbox
-              v-for="option in item.options"
+              v-for="option in checkFnAndReturnVal(item.options, formData)"
               :key="option.value"
               :label="option.value"
               :disabled="option.disabled"
@@ -106,7 +106,7 @@
           <!-- Render el-radio-group for single selection -->
           <el-radio-group v-else-if="item.type === 'radio-group'" v-model="formData[getItemKey(item)]">
             <el-radio
-              v-for="option in item.options"
+              v-for="option in checkFnAndReturnVal(item.options, formData)"
               :key="option.value"
               :label="option.value"
               :disabled="option.disabled"
@@ -226,7 +226,7 @@ export interface ItemInterface<T = any> {
   rules?: Arrayable<FormItemRule> // Validation rules
   checkDisabled?: (formData: Record<string, any>) => boolean // Function to determine if the item should be disabled
   disabledDate?: (time: Date) => boolean // Function to determine if the item should be disabled
-  options?: Record<string, any>[] // Options for select, radio-group, and checkbox-group
+  options?: Record<string, any>[] | ((row?: Record<string, any>) => Record<string, any>[]) // Options for select, radio-group, and checkbox-group
   optionsLabelValue?: [string, string] // Options for select, radio-group, and checkbox-group
   optionsCheckDisabled?: (option: Record<string, any>) => boolean
   activeText?: string // Active text for switch
@@ -357,6 +357,12 @@ const resetFields = async () => {
     isFormValid.value = false
   } catch (error) {}
 }
+
+const checkFnAndReturnVal = (
+  val: any | ((row: Record<string, any>) => any),
+  data: Record<string, any>,
+  argsValue?: any
+) => (typeof val === 'function' ? val(data, argsValue) : val)
 
 defineExpose({
   validateField,
