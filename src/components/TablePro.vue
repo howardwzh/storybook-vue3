@@ -5,7 +5,7 @@
       <el-button size="small" type="info" @click="toggleEditingOrder(false)">取消</el-button>
       <el-button size="small" @click="resetConfig">恢复默认</el-button>
     </div>
-    <el-table :data="tableData" @header-click="toggleEditingOrder(true)" border>
+    <el-table :data="tableData" @header-click="handleClickHeader" border>
       <template v-for="column in finalConfig" :key="column.key || column.type">
         <!-- Selection Column -->
         <el-table-column
@@ -28,7 +28,7 @@
           </template>
           <template #default="{ row }">
             <el-checkbox
-              :disabled="!checkFnAndReturnVal(column.selectable, row)"
+              :disabled="column.selectable !== undefined && !checkFnAndReturnVal(column.selectable, row)"
               :model-value="!!selectedRows.find((s: Record<string, any>) => s[column.uuid] === row[column.uuid])"
               @change="toggleRowSelection(row, column)"
             />
@@ -177,12 +177,13 @@
             <el-image
               v-if="column.key && row[column.key]"
               :src="row[column.key]"
-              :preview-src-list="column.preview ? [row[column.key]] : []"
+              :preview-src-list="!!column.preview ? [row[column.previewKey] || row[column.key]] : []"
               preview-teleported
               :style="{
                 width: column.size?.width + 'px',
                 height: column.size?.height + 'px',
               }"
+              @click="checkFnAndReturnVal(column.preview, row)"
             />
           </template>
         </el-table-column>
@@ -243,8 +244,8 @@
           :fixed="checkIfFixed(column.key)"
         >
           <template #header>
-            <div :style="`align:${column.align}`">{{ column.label }}</div>
             <slot v-if="column.headerSlot" :name="column.headerSlot"></slot>
+            <div v-else :style="`align:${column.align}`">{{ column.label }}</div>
             <div class="header-actions" v-if="isEditingOrder">
               <div
                 v-if="getOrderIndex(column.key) > 0"
@@ -452,7 +453,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed, toRef } from 'vue'
+import { ref, nextTick, computed, toRef, onMounted, onUnmounted } from 'vue'
 import {
   ElTable,
   ElTableColumn,
@@ -474,6 +475,7 @@ export interface TableColumn {
   uuid?: string
   type?: 'selection' | 'index' | 'image' | 'link'
   key?: string
+  previewKey?: string
   label?: string
   width?: number
   minWidth?: number
@@ -519,7 +521,7 @@ export interface TableColumn {
   }[]
   slot?: string
   size?: { width: number; height: number }
-  preview?: boolean
+  preview?: boolean | ((row: Record<string, any>, value?: any) => void)
   fixed?: boolean
   headerSlot?: string
   tag?: {
@@ -583,11 +585,6 @@ const finalConfig = computed((): TableColumn[] => {
     const keyOne = _config.find((column: TableColumn) => column.key === key)
     keyOne && result.push(keyOne)
   })
-  const checkIfFixed = (key: string) => fixedColumns.value.indexOf(key) !== -1
-  tempFixedColumns.value.map((key: string) => {
-    if (checkIfFixed(key)) return
-    result.push()
-  })
   leftOrderConfig.value.map((key: string) => {
     if (checkIfFixed(key)) return
     const keyOne = _config.find((column: TableColumn) => column.key === key)
@@ -600,6 +597,19 @@ const finalConfig = computed((): TableColumn[] => {
   })
   return result
 })
+
+let clickTimer: any = null
+const handleClickHeader = () => {
+  if (clickTimer) {
+    clearTimeout(clickTimer)
+    clickTimer = null
+    toggleEditingOrder(true)
+  } else {
+    clickTimer = setTimeout(() => {
+      clickTimer = null
+    }, 300) // 300ms 以内再次点击视为双击
+  }
+}
 
 const toggleEditingOrder = (open?: boolean) => {
   if (!props.controllable || isEditingOrder.value === open) return
@@ -781,6 +791,20 @@ const confirmOrder = () => {
   localStorage.setItem(`leftOrderConfig-${cacheKey}`, JSON.stringify(leftOrderConfig.value))
   toggleEditingOrder(false)
 }
+
+const handleEsc = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    toggleEditingOrder(false)
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleEsc)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleEsc)
+})
 </script>
 
 <style scoped>
@@ -840,11 +864,11 @@ const confirmOrder = () => {
 .el-table .el-table__cell .header-actions {
   position: absolute;
   display: flex;
+  gap: 8px;
   width: 100%;
   height: 100%;
   top: 0;
   left: 0;
-  justify-content: space-between;
   align-items: center;
   padding: 0 8px;
   background-color: rgba(0, 0, 0, 0.2);
